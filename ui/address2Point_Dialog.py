@@ -1,6 +1,6 @@
 """
 /***************************************************************************
-    This module containes the class to create the dialog UI for the 
+    This module contains the class to create the dialog UI for the 
     address2point.py script. It contains a class 'ui_mg_addresse2point' 
     for the management of the UI and data preparation. 
     And another class 'ui_run_address2point' to run the script through the UI. 
@@ -22,7 +22,7 @@ from qgis.core import QgsProject, QgsMapLayerType, QgsWkbTypes
 from qgis.core import QgsVectorLayer
 
 class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CLASS):
-    """ui_mg_address2point contains all the functions specficly designed to manage the UI
+    """ui_mg_address2point contains all the functions specifically designed to manage the UI
     and the data created from the UI to be used in the address2point.py script.
 
     Args:
@@ -97,7 +97,7 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
 
     def getQTableWidgetData(self,columnNumber=3) -> list[list]:
         """getQTableWidgetData returns data from the QTableWidget in a list of lists.
-        each list containes the parameters for each row of the QTableWidget.
+        each list contains the parameters for each row of the QTableWidget.
         
         Returns: A list of list[str,str,str(dict)] containing the parameters of each row.
         """
@@ -108,9 +108,9 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
     
     @staticmethod
     def processAPI_Tab1(data: list) -> list:
-        """processAPI_Tab1 will use address2point.py functions to geocode individualy each row of the QTableWidget.
+        """processAPI_Tab1 will use address2point.py functions to geocode individually each row of the QTableWidget.
         Each row is transformed into a specific format list[API, address, other parameters..] 
-        and then passed to the AddressSearch class. AddressSearch uses the these parameters to geocode the address.
+        and then passed to the AddressSearch class. AddressSearch uses these parameters to geocode the address.
         The result will be stored in a list of GeoDataFrame objects that will be merged into 
         a single GeoDataFrame, that will be separated into several gdf according to the geometry type of each row
         (Mostly point, but can be polygon with Nominatim).
@@ -169,7 +169,7 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
     #CSV geocoding Tab
     def load_csv(self):
         """loads a CSV file and populates the QTableWidget of the UI with the data.
-        it then populate the comboBox with the header of the CSV file to select the address colum.
+        it then populate the comboBox with the header of the CSV file to select the address column.
         """
         file_path = self.mQgsFileWidget_Tab2.filePath()
         if file_path:
@@ -197,7 +197,7 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
                 return i
         
     def processAPI_Tab2(self):
-        """processApi_Tab2 will use address2point.py functions to geocode individualy each row of the QTableWidget.
+        """processApi_Tab2 will use address2point.py functions to geocode individually each row of the QTableWidget.
         Each row is passed to the AddressSearch class with the API selected by the user. 
 
         It will respect the usage policies of the APIs used:

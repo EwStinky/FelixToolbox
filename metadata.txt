@@ -1,7 +1,7 @@
 [general]
 name=Félix's Toolbox
 description=Collection of some of my tools that I've made for QGIS.
-about= It is not oriented on any specific topic, mostly about different projects that I've worked on. So I will add tools whenever I can and if I think it could be usefull. I will not add very specific and project oriented tools.
+about= It is not oriented on any specific topic, mostly about different projects that I've worked on. So I will add tools whenever I can and if I think it could be useful. I will not add very specific and project-oriented tools.
 version=1.0
 qgisMinimumVersion=3.0
 author=Félix GARDOT

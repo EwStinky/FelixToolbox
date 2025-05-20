@@ -1,7 +1,7 @@
 """
 /***************************************************************************
-    adress2point.py is a script that takes an adress as input (string) 
-    and returns a point geometry in the form of a GeoDataFrame object.
+    address2point.py is a script that takes an address as input (string) 
+    and returns a geometry point in the form of a GeoDataFrame object.
     The GeoDataFrame contains the attributes returned by the API selected.
                              -------------------
         begin                : 2025-03-26
@@ -15,7 +15,7 @@ import requests
 class AddressSearch:
     """
     AddressSearch is a class that uses APIs from BAN or Nominatim to produce a 
-    GeoDataFrame from an adress string used as input
+    GeoDataFrame from an address string used as input
 
     /!\ The usage policies of the APIs are:
         - Nominatim: maximum 1 request / second 
@@ -82,10 +82,10 @@ class AddressSearch:
         https://nominatim.org/release-docs/develop/api/Search/
 
         Args:
-            - q (str): a string corresponding to the adress to research (amenity-street-city-county-state-country-postal code)
-            - limit (int, optional): Limit the maximum number of returned results.. Defaults to 10.
+            - q (str): a string corresponding to the address to research (amenity-street-city-county-state-country-postal code)
+            - limit (int, optional): Limit the maximum number of returned results. Defaults to 10.
             - addressdetails (int, optional): include a breakdown of the address into elements. Defaults to 1.
-            - extratags (int, optional): nclude any additional information in the result that is available in the database. Defaults to 1.
+            - extratags (int, optional): include any additional information in the result that is available in the database. Defaults to 1.
             - namedetails (int, optional): include a full list of names for the result. Defaults to 1.
             - accept_language (str, optional): Preferred language order for showing search results. Defaults to 'en'.
             - countrycodes (list of str, optional): restrict results to a specific country. Defaults to None. Comma-separated list of country codes

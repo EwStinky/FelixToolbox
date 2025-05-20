@@ -1,20 +1,20 @@
 # FelixToolbox
 
-Félix's Toolbox is a QGIS plugin designed to regroups multiple GIS-oriented python scripts that was created through the time, for various professional projects. 
-Félix's Toolbox provides intuitive features to facilitate various tasks that either do no exist in QGIS, or require several processes.
-Because it is not oriented on one specific topic, Félix's Toolbox contains several tools that are not necesseraly related to each other, and are added throught the time.
+Félix's Toolbox is a QGIS plugin designed to regroup multiple GIS-oriented python scripts that were created through the time, for various professional projects. 
+Félix's Toolbox provides intuitive features to facilitate various tasks that either do not exist in QGIS, or require several processes.
+Because it is not oriented on one specific topic, Félix's Toolbox contains several tools that are not necesseraly related to each other, and are added throughout time.
 
 ## 🛠 Project Structure
 
 - `icons/`: Directory containing the icons used for the plugin menu.
-- `library/`: Directory containing every python files created, each file is corresponding to processing of a tool.
+- `library/`: Directory containing every python file created, each file is corresponding to processing of a tool.
   - `__init__.py`: file selecting all the required python files needed for the tool processing.
   - `toolName.py`: file containing all the processes for the use of this tool.
 - `ui/`: Directory containing UI files for each tool that requires one.
   - `__init__.py`: file selecting all the required python files needed for the tool's UI.
   - `toolName.ui`: UI file personalized for each specific tool.
-  - `utils.py`: file containing several usefull classes or functions the correct use and management of the UI.
-- `__init__.py`: file Initializing the QGIS plugin.
+  - `utils.py`: file containing several useful classes or functions the correct use and management of the UI.
+- `__init__.py`: file initializing the QGIS plugin.
 - `FelixToolBox_menu.py` : file containing the plugin's framework for its menu and submenus.
 - `LICENSE` : GNU GENERAL PUBLIC LICENSE
 - `metadata.txt`: metadata of the plugin.

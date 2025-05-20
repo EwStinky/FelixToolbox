@@ -10,6 +10,7 @@
 """
 import os
 import geopandas as gpd
+import pandas as pd
 
 from qgis.PyQt import uic
 from qgis.core import QgsVectorLayer
@@ -72,7 +73,10 @@ class prepVector():
         for index, row in gdf.iterrows():
             if row['geometry'].geom_type not in geometry_dict:
                 geometry_dict[row['geometry'].geom_type] = gpd.GeoDataFrame(columns=gdf.columns, crs=gdf.crs)
-            geometry_dict[row['geometry'].geom_type] = geometry_dict[row['geometry'].geom_type].append(row)
+            geometry_dict[row['geometry'].geom_type] = pd.concat(
+                [geometry_dict[row['geometry'].geom_type], row.to_frame().T],
+                ignore_index=True
+            )
         for y in range(len(geometry_dict)):
             output_list.append(geometry_dict[list(geometry_dict.keys())[y]])
         return output_list

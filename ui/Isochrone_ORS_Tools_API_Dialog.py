@@ -1,6 +1,6 @@
 """
 /***************************************************************************
-    This module containes the class to create the dialog UI for the 
+    This module contains the class to create the dialog UI for the 
     Isochrone_ORS_Tools_GeopandasV3.py script.
     It contains a class 'ui_mg_isochrone' for the management of the UI 
     and data preparation. And another class 'ui_run_isochrone' to run the 
@@ -19,7 +19,7 @@ from qgis.core import QgsProject, QgsMapLayerType, QgsWkbTypes
 from qgis.core import QgsVectorLayer
 
 class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').FORM_CLASS):
-    """ui_mg_isochrone contains all the functions specficly designed to manage the UI
+    """ui_mg_isochrone contains all the functions specifically designed to manage the UI
     and the data created from the UI to be used in the Isochrone_ORS_Tools_GeopandasV3.py script.
 
     Args:
@@ -102,7 +102,7 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         try:
             interval_minute=[int(x) for x in data[1].split(",")]
         except ValueError:
-            raise ValueError('Time interval in minute must be a list of integers separated by commas. for example: 5,10,15')
+            raise ValueError('Time interval must be a list of integers separated by commas. for example: 5,10,15')
         smoothing_factor=int(data[2])
         location_type=data[3]
         api_key=data[4]

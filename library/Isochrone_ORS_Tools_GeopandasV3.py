@@ -1,14 +1,14 @@
 """
 /***************************************************************************
-    Isochrone_ORS_Tools_GeopandasV3.py will produces an isochrone geojson for each points of a point layer 
+    Isochrone_ORS_Tools_GeopandasV3.py will produce an isochrone geojson for each point of a point layer 
     using the ORS Tools API. The isochrones will be created for each time interval declared 
-    in the 'inteval_minutes' variable, from the ORS API services.
+    in the 'interval_minutes' variable, from the ORS API services.
     It will then merge the isochrones together and create a new geojson
     which represents the time range unit of this isochrone. 
 
-    inteval_minutes: list of time intervals in minutes
+    interval_minutes: list of time intervals in minutes
     api_ors_key: string representing the API key for the ORS Tools services
-    input_coordinates: a list of a list of coordinates (X,Y) of each point need to get an isochrone, 
+    input_coordinates: a list of a list of coordinates (X,Y) of each point needed to get an isochrone, 
                              -------------------
         begin                : 2025-01-29
         email                : felix.gardot@gmail.com
@@ -77,7 +77,7 @@ class Isochrone_ORS_V3_QGIS:
     @staticmethod
     def  verif_list_float(input_coordinates: list):
         """
-        The function `verif_list_int` checks if all the lists in the list `input_coordinates` contains 2 floats elements.
+        The function `verif_list_int` checks if all the lists in the list `input_coordinates` contain 2 float elements.
         Returns True if all conditons are met.
         """
         return all(
@@ -118,7 +118,7 @@ class Isochrone_ORS_V3_QGIS:
         """
         The function `request_ORS_isochrone_api` prepares the body parameters for the isochrone API request from ORS Tools services.
         It then sends a POST request to the ORS Tools isochrone API and returns the response from the API as a QgsVectorLayer.
-        The number of points requested cannot exceed 5 points, so the function verify if the list of points > 5 or not.
+        The number of points requested cannot exceed 5 points, so the function verifies if the list of points > 5 or not.
         If it is the case, then I will request the points by dividing the list of points into sublists of 5 points.
 
         inputs:
@@ -171,7 +171,7 @@ class Isochrone_ORS_V3_QGIS:
             The column 'value' is updated to be presented in minutes.
             The column 'center' is dropped to be replaced with 'Xcentroid' and 'Ycentroid' columns.
         """
-        dissolved_gdf=[list_gdf[list_gdf['value'] == y].dissolve() for y in interval_seconds] #dissovle the layer per time value
+        dissolved_gdf=[list_gdf[list_gdf['value'] == y].dissolve() for y in interval_seconds] #dissolve the layer per time value
         difference = []
         difference.append(dissolved_gdf[0])  #Append the first layer without processing
         for u in range(len(interval_seconds) - 1): #Loop to get the difference between each layer
