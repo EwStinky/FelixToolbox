@@ -41,12 +41,26 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
     def addRowQTableWidget(self): 
         """addRowQTableWidget adds a row to  the QTableWidget 
         with the parameters selected by the user.
+
+        It checks if the user has enter parameters in the QlineEdit.
+        If not, the missing or wrong input will be highlighted in red
         """
         #Nominatim API
         if self.stackedWidget_Tab1.currentIndex()==0: 
             if self.lineEdit_AddressInput_Nominatim_Tab1.text() == '':
-                QtWidgets.QMessageBox.warning(self, "Warning", "Please enter an address.")
+                try:
+                    CostValue=list(map(int,self.lineEdit_AddressInput_Nominatim_Tab1.text().split(',')))
+                except Exception:
+                    self.lineEdit_AddressInput_Nominatim_Tab1.setStyleSheet("""
+                        QLineEdit {
+                            color: red; /* Text color */
+                            border: 1px solid red; /* Hollow red border */
+                            border-radius: 2px; 
+                            background-color: white; /* Optional: ensure background is not red */
+                        }""")
+                    return
             else:
+                self.lineEdit_AddressInput_Nominatim_Tab1.setStyleSheet("""QLineEdit { }""")
                 parameters=[
                     self.lineEdit_AddressInput_Nominatim_Tab1.text(),
                     'Nominatim',
@@ -69,8 +83,19 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
         #BAN API
         elif self.stackedWidget_Tab1.currentIndex()==1: 
             if self.lineEdit_AddressInput_BAN_Tab1.text() == '':
-                QtWidgets.QMessageBox.warning(self, "Warning", "Please enter an address.")
+                try:
+                    CostValue=list(map(int,self.lineEdit_AddressInput_BAN_Tab1.text().split(',')))
+                except Exception:
+                    self.lineEdit_AddressInput_BAN_Tab1.setStyleSheet("""
+                        QLineEdit {
+                            color: red; /* Text color */
+                            border: 1px solid red; /* Hollow red border */
+                            border-radius: 2px; 
+                            background-color: white; /* Optional: ensure background is not red */
+                        }""")
+                    return
             else:
+                self.lineEdit_AddressInput_BAN_Tab1.setStyleSheet("""QLineEdit { }""")
                 parameters=[
                     self.lineEdit_AddressInput_BAN_Tab1.text(),
                     'BAN',

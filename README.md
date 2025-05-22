@@ -22,7 +22,9 @@ Because it is not oriented on one specific topic, Félix's Toolbox contains seve
 
 ## 🎁 Features
 
-👉 **Isochrone ORS API**: Requests isochrones from the ORS API for the selected point layers and their parameters, and then dissolve for each layer the isochrones per time unit.
+👉 **Isochrone ORS API**: Requests isochrones from the ORS (Openrouteservice) API for the selected point layers and their parameters, and then dissolve for each layer the isochrones per time unit.
+
+👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require an API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected point layers and their parameters, and then dissolve for each layer the isochrones per time unit.
 
 👉 **Map Screenshot**: Produces instantly a map of your current QGIS instance view and all its active layers, with a personalized title and sources.
 

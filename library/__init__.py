@@ -9,8 +9,9 @@
  ***************************************************************************/
 """
 __version__ = '1.0.0'
-__all__ = ['mapscreenshot','Isochrone_ORS_V3_QGIS','AddressSearch']
+__all__ = ['mapscreenshot','Isochrone_ORS_V3_QGIS','AddressSearch','Isochrone_API_IGN']
 
 from .mapscreenshot import mapscreenshot
 from .Isochrone_ORS_Tools_GeopandasV3 import Isochrone_ORS_V3_QGIS
+from .Isochrone_IGN_API import Isochrone_API_IGN
 from .address2point import AddressSearch

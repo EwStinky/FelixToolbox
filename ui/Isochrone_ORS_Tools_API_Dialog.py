@@ -65,20 +65,43 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         """addRowQTableWidget adds a row to  the QTableWidget 
         with the parameters selected by the user.
         """
-        if self.comboBox_layer_QGIS.currentText()=="": #On vérifie que c'est pas l'option inutile
+        if self.comboBox_layer_QGIS.currentText()=="": 
             pass
         else:
-            parameters=[
-                self.comboBox_layer_QGIS.currentText(),
-                self.lineEdit_time_interval.text(),
-                self.spinBox_smoothing_factor.value(),
-                self.comboBox_location_type.currentText(),
-                self.lineEdit_api_key.text()]
-            self.comboBox_layer_QGIS.setCurrentIndex(-1) #On retourne à la sélection vid
-            numRows = self.tableWidget.rowCount()
-            self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
-            for i in range(len(parameters)): #populate the row
-                self.tableWidget.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+            if self.lineEdit_api_key.text()=="":
+                self.lineEdit_api_key.setStyleSheet("""
+                    QLineEdit {
+                        color: red; /* Text color */
+                        border: 1px solid red; /* Hollow red border */
+                        border-radius: 2px; 
+                        background-color: white; /* Optional: ensure background is not red */
+                    }""")
+                pass
+            else:
+                try:
+                    self.lineEdit_api_key.setStyleSheet("""QLineEdit { }""")
+                    self.lineEdit_time_interval.setStyleSheet("""QLineEdit { }""")
+                    CostValue=list(map(int,self.lineEdit_time_interval.text().split(',')))
+                except Exception:
+                    self.lineEdit_time_interval.setStyleSheet("""
+                        QLineEdit {
+                            color: red; /* Text color */
+                            border: 1px solid red; /* Hollow red border */
+                            border-radius: 2px; 
+                            background-color: white; /* Optional: ensure background is not red */
+                        }""")
+                    return
+                parameters=[
+                    self.comboBox_layer_QGIS.currentText(),
+                    self.lineEdit_time_interval.text(),
+                    self.spinBox_smoothing_factor.value(),
+                    self.comboBox_location_type.currentText(),
+                    self.lineEdit_api_key.text()]
+                self.comboBox_layer_QGIS.setCurrentIndex(-1) #On retourne à la sélection vid
+                numRows = self.tableWidget.rowCount()
+                self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
+                for i in range(len(parameters)): #populate the row
+                    self.tableWidget.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
 
     def removeRwoQTableWidget(self):
         """removeRwoQTableWidget removes the selected row from the QTableWidget."""
