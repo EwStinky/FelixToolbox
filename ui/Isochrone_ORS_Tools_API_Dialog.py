@@ -93,6 +93,7 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
                     return
                 parameters=[
                     self.comboBox_layer_QGIS.currentText(),
+                    self.comboBox_transportation_mode.currentText(),
                     self.lineEdit_time_interval.text(),
                     self.spinBox_smoothing_factor.value(),
                     self.comboBox_location_type.currentText(),
@@ -108,12 +109,12 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         row = self.tableWidget.currentRow()
         self.tableWidget.removeRow(row)
 
-    def getQTableWidgetData(self):
+    def getQTableWidgetData(self,column_number:int=6):
         """getQTableWidgetData returns the data from the QTableWidget"""
         data = []
         for row in range(self.tableWidget.rowCount()):
             data.append([self.tableWidget.item(row, col).text() for col in range(self.tableWidget.columnCount())])
-        return [data[i:i+5] for i in range(0,len(data),5)][0]
+        return [data[i:i+column_number] for i in range(0,len(data),column_number)][0]
 
     @staticmethod
     def prepData(data: list):
@@ -122,14 +123,15 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         layer_selected=[x for x in QgsProject.instance().mapLayers().values() if x.id()==data[0]][0]
         layer=prepVector.layer_to_geodataframe(layer_selected)
         layer_name=layer_selected.name()
+        transportation=data[1]
         try:
-            interval_minute=[int(x) for x in data[1].split(",")]
+            interval_minute=[int(x) for x in data[2].split(",")]
         except ValueError:
             raise ValueError('Time interval must be a list of integers separated by commas. for example: 5,10,15')
-        smoothing_factor=int(data[2])
-        location_type=data[3]
-        api_key=data[4]
-        return layer,interval_minute,api_key,smoothing_factor,location_type,layer_name
+        smoothing_factor=int(data[3])
+        location_type=data[4]
+        api_key=data[5]
+        return layer,interval_minute,api_key,smoothing_factor,location_type,transportation,layer_name
 
 class ui_run_isochrone():
     """ui_run_isochrone is used to run Isochrones_ORS_Tools_GeopandasV3's UI.

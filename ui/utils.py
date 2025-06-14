@@ -52,7 +52,8 @@ class prepVector():
             gdf = gpd.GeoDataFrame(attributes, columns=column_names)
             gdf['geometry'] = geometries
             gdf['geometry'] = gpd.GeoSeries.from_wkt(gdf['geometry'])
-            return gdf.set_crs(layer.crs().authid())
+            gdf = gdf.set_geometry('geometry')
+            return gdf.set_crs(layer.crs().authid(), inplace=True)
 
     @staticmethod
     def separate_gdf_by_geometry(gdf) -> list:

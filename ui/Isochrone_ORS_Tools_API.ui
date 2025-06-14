@@ -118,7 +118,14 @@
      <property name="sizeConstraint">
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
-     <item row="0" column="2">
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Time interval in minute</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
       <widget class="QLabel" name="label_fonction_exterieur">
        <property name="text">
         <string>Location type</string>
@@ -126,22 +133,6 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QSpinBox" name="spinBox_smoothing_factor">
-       <property name="specialValueText">
-        <string>0</string>
-       </property>
-       <property name="minimum">
-        <number>0</number>
-       </property>
-       <property name="maximum">
-        <number>99999</number>
-       </property>
-       <property name="value">
-        <number>0</number>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
       <widget class="QLineEdit" name="lineEdit_time_interval">
        <property name="enabled">
         <bool>true</bool>
@@ -157,7 +148,33 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_Distance_exterieur">
+       <property name="text">
+        <string>Smoothing factor</string>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
      <item row="1" column="2">
+      <widget class="QSpinBox" name="spinBox_smoothing_factor">
+       <property name="specialValueText">
+        <string>0</string>
+       </property>
+       <property name="minimum">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <number>99999</number>
+       </property>
+       <property name="value">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
       <widget class="QComboBox" name="comboBox_location_type">
        <item>
         <property name="text">
@@ -171,20 +188,59 @@
        </item>
       </widget>
      </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Time interval in minute</string>
-       </property>
+     <item row="1" column="0">
+      <widget class="QComboBox" name="comboBox_transportation_mode">
+       <item>
+        <property name="text">
+         <string>driving-car</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>driving-hgv</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>cycling-regular</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>cycling-road</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>cycling-mountain</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>cycling-electric</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>foot-walking</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>foot-hiking</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>wheelchair</string>
+        </property>
+       </item>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLabel" name="label_Distance_exterieur">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_transportation_mode">
        <property name="text">
-        <string>Smoothing factor</string>
-       </property>
-       <property name="wordWrap">
-        <bool>true</bool>
+        <string>Transportation mode</string>
        </property>
       </widget>
      </item>
@@ -308,6 +364,11 @@
      <column>
       <property name="text">
        <string>Vecteurs</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Transportation</string>
       </property>
      </column>
      <column>

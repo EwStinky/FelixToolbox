@@ -22,7 +22,7 @@ import requests
 
 class Isochrone_ORS_V3_QGIS:
 
-    def __init__(self,input_layer, interval_minutes: list, api_ors_key: str, smoothing=0, location_type='destination'):
+    def __init__(self,input_layer, interval_minutes: list, api_ors_key: str, smoothing:int=0, location_type:str='destination',transportation:str='driving-car'):
         """
         The function initializes an object with a selected vector layer, a list of interval minutes, and
         an API key for OpenRouteService.
@@ -49,6 +49,7 @@ class Isochrone_ORS_V3_QGIS:
             
         self.smoothing = smoothing
         self.location_type = location_type
+        self.transportation = transportation
 
         if not isinstance(api_ors_key, str) or not api_ors_key.strip():
             raise ValueError("The API key must be a non-empty string.")
@@ -114,7 +115,7 @@ class Isochrone_ORS_V3_QGIS:
         return [[f.x,f.y] for f in gdf['{}'.format(geometry_column)]]
 
     @staticmethod
-    def request_ORS_isochrone_api(input_coordinates: list[list[float,float]],interval_seconds: list[int],api_ors_key: str,smoothing=0, location_type='destination') -> dict:
+    def request_ORS_isochrone_api(input_coordinates: list[list[float,float]],interval_seconds: list[int],api_ors_key: str,smoothing=0, location_type='destination', transportation:str='driving-car') -> dict:
         """
         The function `request_ORS_isochrone_api` prepares the body parameters for the isochrone API request from ORS Tools services.
         It then sends a POST request to the ORS Tools isochrone API and returns the response from the API as a QgsVectorLayer.
@@ -145,7 +146,7 @@ class Isochrone_ORS_V3_QGIS:
             'attributes':["area","reachfactor"],
             'smoothing':smoothing,
         }
-        call=requests.post('https://api.openrouteservice.org/v2/isochrones/{}'.format('foot-walking'),json=api_body,headers=api_headers)
+        call=requests.post('https://api.openrouteservice.org/v2/isochrones/{}'.format(transportation),json=api_body,headers=api_headers)
         call.raise_for_status()
         return call.json()
 
@@ -190,7 +191,7 @@ class Isochrone_ORS_V3_QGIS:
         outputJson=[]
         try:
             for y in self.split_coordinates_into_sublists(self.get_points_coordinates(self.input_layer,'geometry')):
-                outputJson.append(self.request_ORS_isochrone_api(y,self.interval_minutes,self.api_ors_key,self.smoothing,self.location_type))
+                outputJson.append(self.request_ORS_isochrone_api(y,self.interval_minutes,self.api_ors_key,self.smoothing,self.location_type,self.transportation))
             return self.post_api_processing(pd.concat([self.api_output_to_gdf(y) for y in outputJson]),self.interval_minutes)
             
         except requests.exceptions.HTTPError as http_err:
