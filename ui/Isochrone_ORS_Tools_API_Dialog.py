@@ -33,6 +33,7 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         self.button_box.rejected.connect(self.cleanWidgets)
         self.pushButton_Ajouter_table.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
+        self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
 
     def cleanWidgets(self):
         """cleanWidgets is used to reset the widgets to their default settings.
@@ -63,7 +64,7 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
 
     def addRowQTableWidget(self): 
         """addRowQTableWidget adds a row to  the QTableWidget 
-        with the parameters selected by the user.
+        with the parameters selected by the user. And add the layer id to self.list_layers.
         """
         if self.comboBox_layer_QGIS.currentText()=="": 
             pass
@@ -98,6 +99,7 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
                     self.spinBox_smoothing_factor.value(),
                     self.comboBox_location_type.currentText(),
                     self.lineEdit_api_key.text()]
+                self.list_layers.append(self.comboBox_layer_QGIS.itemData(self.comboBox_layer_QGIS.currentIndex()))
                 self.comboBox_layer_QGIS.setCurrentIndex(-1) #On retourne à la sélection vid
                 numRows = self.tableWidget.rowCount()
                 self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
@@ -105,8 +107,12 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
                     self.tableWidget.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
 
     def removeRwoQTableWidget(self):
-        """removeRwoQTableWidget removes the selected row from the QTableWidget."""
+        """removeRwoQTableWidget removes the selected row from the QTableWidget and self.list_layers."""
         row = self.tableWidget.currentRow()
+        try:
+            del(self.list_layers[row])
+        except IndexError:
+            return
         self.tableWidget.removeRow(row)
 
     def getQTableWidgetData(self,column_number:int=6):
@@ -116,18 +122,14 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
             data.append([self.tableWidget.item(row, col).text() for col in range(self.tableWidget.columnCount())])
         return [data[i:i+column_number] for i in range(0,len(data),column_number)][0]
 
-    @staticmethod
-    def prepData(data: list):
-        """prepData transforms the data from the QTableWidget
+    def prepData(self, data: list, index:int):
+        """prepData transforms the data from the QTableWidget and self.list_layers
         into a format that can be used by Isochrone_ORS_Tools_GeopandasV3.py"""
-        layer_selected=[x for x in QgsProject.instance().mapLayers().values() if x.id()==data[0]][0]
+        layer_selected=QgsProject.instance().mapLayer(self.list_layers[index])
         layer=prepVector.layer_to_geodataframe(layer_selected)
         layer_name=layer_selected.name()
         transportation=data[1]
-        try:
-            interval_minute=[int(x) for x in data[2].split(",")]
-        except ValueError:
-            raise ValueError('Time interval must be a list of integers separated by commas. for example: 5,10,15')
+        interval_minute=[int(x) for x in data[2].split(",")]
         smoothing_factor=int(data[3])
         location_type=data[4]
         api_key=data[5]
@@ -142,9 +144,9 @@ class ui_run_isochrone():
     
     def run(self): 
         self.dlg.comboBox_layer_QGIS.clear()
-        self.dlg.comboBox_layer_QGIS.addItems([
-            layer.id() for layer in QgsProject.instance().mapLayers().values() 
-            if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry])
+        for layer in QgsProject.instance().mapLayers().values():
+            if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
+                self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
         self.dlg.show()
 
         if self.dlg.exec_():
@@ -153,8 +155,8 @@ class ui_run_isochrone():
                     QtWidgets.QMessageBox.warning(self.dlg, "Warning", "Please add at least one input.")
                     return
                 else:
-                    for data in self.dlg.getQTableWidgetData():
-                        parameters=list(self.dlg.prepData(data))
+                    for index,data in enumerate(self.dlg.getQTableWidgetData()):
+                        parameters=list(self.dlg.prepData(data,index))
                         isochrone_output=Isochrone_ORS_V3_QGIS(*parameters[:-1])
                         QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone_output.result, "Isochrone_{}".format(parameters[-1]), "ogr"))
             except RuntimeError as e:

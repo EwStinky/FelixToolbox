@@ -34,6 +34,7 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
         self.pushButton_Ajouter_table.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
         self.comboBox_CostType.currentTextChanged.connect(self.update_unit_combobox)
+        self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
 
     def cleanWidgets(self):
         """cleanWidgets is used to reset the widgets to their default settings.
@@ -62,7 +63,7 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
 
     def addRowQTableWidget(self): 
         """addRowQTableWidget adds a row to  the QTableWidget 
-        with the parameters selected by the user.
+        with the parameters selected by the user. And add the layer id to self.list_layers.
 
         It checks if the user has enter parameters in the QlineEdit.
         If not, the missing or wrong input will be highlighted in red
@@ -96,6 +97,7 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
                     'timeUnit':[i if i in ('second', 'minute', 'hour', 'standard') else 'minute' for i in [self.comboBox_Unit.currentText()]][0],
                     }
                 ]
+            self.list_layers.append(self.comboBox_layer_QGIS.itemData(self.comboBox_layer_QGIS.currentIndex()))
             self.comboBox_layer_QGIS.setCurrentIndex(-1) #back to default
             numRows = self.tableWidget.rowCount()
             self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
@@ -103,8 +105,12 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
                 self.tableWidget.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
 
     def removeRwoQTableWidget(self):
-        """removeRwoQTableWidget removes the selected row from the QTableWidget."""
+        """removeRwoQTableWidget removes the selected row from the QTableWidget and self.list_layers."""
         row = self.tableWidget.currentRow()
+        try:
+            del(self.list_layers[row])
+        except IndexError:
+            return
         self.tableWidget.removeRow(row)
 
     def update_unit_combobox(self):
@@ -137,9 +143,9 @@ class ui_run_isochrone_ign():
     
     def run(self): 
         self.dlg.comboBox_layer_QGIS.clear()
-        self.dlg.comboBox_layer_QGIS.addItems([
-            layer.id() for layer in QgsProject.instance().mapLayers().values() 
-            if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry])
+        for layer in QgsProject.instance().mapLayers().values():
+                    if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
+                        self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
         self.dlg.show()
 
         if self.dlg.exec_():
@@ -148,8 +154,8 @@ class ui_run_isochrone_ign():
                     QtWidgets.QMessageBox.warning(self.dlg, "Warning", "Please add at least one input.")
                     return
                 else:
-                    for data in self.dlg.getQTableWidgetData():
-                        layer_selected=[x for x in QgsProject.instance().mapLayers().values() if x.id()==data[0]][0]
+                    for index,data in enumerate(self.dlg.getQTableWidgetData()):
+                        layer_selected=QgsProject.instance().mapLayer(self.dlg.list_layers[index])
                         layer=prepVector.layer_to_geodataframe(layer_selected)
                         layer.to_crs('EPSG:4326', inplace=True)
                         isochrone=Isochrone_API_IGN(layer,list(map(int,data[1].split(','))),**eval(data[2]))
