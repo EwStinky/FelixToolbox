@@ -24,6 +24,7 @@ from qgis.core import QgsVectorLayer
 class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CLASS):
     """ui_mg_address2point contains all the functions specifically designed to manage the UI
     and the data created from the UI to be used in the address2point.py script.
+    Hides the OK and delete buttons if the QTableWidget is empty.
 
     Args:
         QtWidgets: QDialog class that forms the base class of our dialog window.
@@ -33,14 +34,26 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
         """__init__ initializes the dialog window and connects the buttons to the functions."""
         super(ui_mg_address2point, self).__init__(parent)
         self.setupUi(self)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+        self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+
         self.pushButton_Ajouter_table_Tab1.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table_Tab1.clicked.connect(self.removeRwoQTableWidget)
         self.pushButton_csv_file_load_Tab2.clicked.connect(self.load_csv)
+        self.tabWidget.currentChanged.connect(self.tabChanged)
+
+    def tabChanged(self):
+        if self.tabWidget.currentIndex()==0:
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+            self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+        else:
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab2.rowCount() > 0)
 
     #Individual geocoding Tab
     def addRowQTableWidget(self): 
         """addRowQTableWidget adds a row to  the QTableWidget 
         with the parameters selected by the user.
+        Hides the OK and delete buttons if the QTableWidget is empty.
 
         It checks if the user has enter parameters in the QlineEdit.
         If not, the missing or wrong input will be highlighted in red
@@ -79,6 +92,8 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
                 self.tableWidget_Tab1.insertRow(numRows) # Create a empty row at bottom of table
                 for i in range(len(parameters)): #populate the row
                     self.tableWidget_Tab1.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+                self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+                self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
 
         #BAN API
         elif self.stackedWidget_Tab1.currentIndex()==1: 
@@ -112,13 +127,18 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
                 self.tableWidget_Tab1.insertRow(numRows)
                 for i in range(len(parameters)):
                     self.tableWidget_Tab1.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+                self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
+                self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
         else:
             raise ValueError("Invalid API choice.")        
 
     def removeRwoQTableWidget(self):
-        """removeRwoQTableWidget removes the selected row from the QTableWidget."""
+        """removeRwoQTableWidget removes the selected row from the QTableWidget.
+        Hides the OK and delete buttons if the QTableWidget is empty."""
         row = self.tableWidget_Tab1.currentRow()
         self.tableWidget_Tab1.removeRow(row)
+        self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+        self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
 
     def getQTableWidgetData(self,columnNumber=3) -> list[list]:
         """getQTableWidgetData returns data from the QTableWidget in a list of lists.
@@ -195,7 +215,7 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
     def load_csv(self):
         """loads a CSV file and populates the QTableWidget of the UI with the data.
         it then populate the comboBox with the header of the CSV file to select the address column.
-        """
+        Hides the OK and delete buttons if the QTableWidget is empty."""
         file_path = self.mQgsFileWidget_Tab2.filePath()
         if file_path:
             with open(file_path, mode='r', encoding='{}'.format(self.comboBox_2_csv_encoding_Tab2.currentText()), newline='') as file:
@@ -212,6 +232,7 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
 
                 self.comboBox_address_column_Tab2.clear()
                 self.comboBox_address_column_Tab2.addItems(data[0])
+                self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab2.rowCount() > 0)
 
     def getAddressColumn(self):
         """getAddressColumn returns the index (int) of the address column

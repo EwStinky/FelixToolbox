@@ -419,22 +419,6 @@
  <connections>
   <connection>
    <sender>button_box</sender>
-   <signal>accepted()</signal>
-   <receiver>Isochrone_ORS_Tools_API</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>9</x>
-     <y>568</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>742</x>
-     <y>560</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>button_box</sender>
    <signal>rejected()</signal>
    <receiver>Isochrone_ORS_Tools_API</receiver>
    <slot>reject()</slot>
@@ -446,6 +430,22 @@
     <hint type="destinationlabel">
      <x>820</x>
      <y>560</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>button_box</sender>
+   <signal>accepted()</signal>
+   <receiver>Isochrone_ORS_Tools_API</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>439</x>
+     <y>574</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>439</x>
+     <y>299</y>
     </hint>
    </hints>
   </connection>

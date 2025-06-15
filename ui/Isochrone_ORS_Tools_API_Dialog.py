@@ -27,29 +27,18 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         load_ui : function that loads the .ui file and returns the class and the form.
     """
     def __init__(self,parent=None):
-        """__init__ initializes the dialog window and connects the buttons to the functions."""
+        """__init__ initializes the dialog window and connects the buttons to the functions.
+        Hides the OK and delete buttons if the QTableWidget is empty."""
         super(ui_mg_isochrone, self).__init__(parent)
         self.setupUi(self)
-        self.button_box.rejected.connect(self.cleanWidgets)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
         self.pushButton_Ajouter_table.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
+        self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
         self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
 
-    def cleanWidgets(self):
-        """cleanWidgets is used to reset the widgets to their default settings.
-        It is called when the user cancels the dialog window.
-        """
-        self.tableWidget.setRowCount(0)
-        self.pushButton_Ajouter_table.clicked.disconnect()
-        self.pushButton_Effacer_ligne_table.disconnect()
-        self.spinBox_smoothing_factor.setValue(0)
-        self.lineEdit_time_interval.clear()
-        self.lineEdit_time_interval.setPlaceholderText("5, 10 ,15, 20 ...")
-        self.lineEdit_api_key.clear()
-        self.lineEdit_api_key.setPlaceholderText("Add your API key")
-
     def closeEvent(self, event):
-        """cleanWidgets is used to reset the widgets to their default settings.
+        """closeEvent is used to reset the widgets to their default settings.
         It is called when the user closes the window.
         """
         self.tableWidget.setRowCount(0)
@@ -65,6 +54,10 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
     def addRowQTableWidget(self): 
         """addRowQTableWidget adds a row to  the QTableWidget 
         with the parameters selected by the user. And add the layer id to self.list_layers.
+        Enables the OK and delete buttons if the QTableWidget is not empty.
+
+        It checks if the user has enter parameters in the QlineEdit.
+        If not, the missing or wrong input will be highlighted in red
         """
         if self.comboBox_layer_QGIS.currentText()=="": 
             pass
@@ -105,15 +98,20 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
                 self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
                 for i in range(len(parameters)): #populate the row
                     self.tableWidget.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+                self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
+                self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
 
     def removeRwoQTableWidget(self):
-        """removeRwoQTableWidget removes the selected row from the QTableWidget and self.list_layers."""
+        """removeRwoQTableWidget removes the selected row from the QTableWidget and self.list_layers.
+        Enables the OK and delete buttons if the QTableWidget is not empty."""
         row = self.tableWidget.currentRow()
         try:
             del(self.list_layers[row])
         except IndexError:
             return
         self.tableWidget.removeRow(row)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
+        self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
 
     def getQTableWidgetData(self,column_number:int=6):
         """getQTableWidgetData returns the data from the QTableWidget"""
@@ -147,9 +145,9 @@ class ui_run_isochrone():
         for layer in QgsProject.instance().mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                 self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
-        self.dlg.show()
+        ui = self.dlg.exec()
 
-        if self.dlg.exec_():
+        if ui == QtWidgets.QDialog.Accepted:
             try:
                 if self.dlg.tableWidget.rowCount()==0:
                     QtWidgets.QMessageBox.warning(self.dlg, "Warning", "Please add at least one input.")

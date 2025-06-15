@@ -27,29 +27,19 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
         load_ui : function that loads the .ui file and returns the class and the form.
     """
     def __init__(self,parent=None):
-        """__init__ initializes the dialog window and connects the buttons to the functions."""
+        """__init__ initializes the dialog window and connects the buttons to the functions.
+        Hides the OK and delete buttons if the QTableWidget is empty."""
         super(ui_mg_isochrone_ign, self).__init__(parent)
         self.setupUi(self)
-        self.button_box.rejected.connect(self.cleanWidgets)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
         self.pushButton_Ajouter_table.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
+        self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
         self.comboBox_CostType.currentTextChanged.connect(self.update_unit_combobox)
         self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
 
-    def cleanWidgets(self):
-        """cleanWidgets is used to reset the widgets to their default settings.
-        It is called when the user cancels the dialog window.
-        """
-        self.tableWidget.setRowCount(0)
-        self.pushButton_Ajouter_table.clicked.disconnect()
-        self.pushButton_Effacer_ligne_table.disconnect()
-        self.lineEdit_CostValue.clear()
-        self.lineEdit_CostValue.setPlaceholderText("5, 10 ,15, 20 ...")
-        self.lineEdit_constraint.clear()
-        self.lineEdit_constraint.setPlaceholderText('Ex: {"constraintType":"banned","key":"wayType","operator":"=","value":"autoroute"}')
-
     def closeEvent(self, event):
-        """cleanWidgets is used to reset the widgets to their default settings.
+        """closeEvent is used to reset the widgets to their default settings.
         It is called when the user closes the window.
         """
         self.tableWidget.setRowCount(0)
@@ -64,11 +54,12 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
     def addRowQTableWidget(self): 
         """addRowQTableWidget adds a row to  the QTableWidget 
         with the parameters selected by the user. And add the layer id to self.list_layers.
+        Enables the OK and delete buttons if the QTableWidget is not empty.
 
         It checks if the user has enter parameters in the QlineEdit.
         If not, the missing or wrong input will be highlighted in red
         """
-        if self.comboBox_layer_QGIS.currentText()=="": #On vérifie que c'est pas l'option inutile
+        if self.comboBox_layer_QGIS.currentText()=="": #Check if the user has selected a layer
             pass
 
         else:
@@ -103,19 +94,24 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
             self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
             for i in range(len(parameters)): #populate the row
                 self.tableWidget.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+            self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
+            self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
 
     def removeRwoQTableWidget(self):
-        """removeRwoQTableWidget removes the selected row from the QTableWidget and self.list_layers."""
+        """removeRwoQTableWidget removes the selected row from the QTableWidget and self.list_layers.
+        Enables the OK and delete buttons if the QTableWidget is not empty."""
         row = self.tableWidget.currentRow()
         try:
             del(self.list_layers[row])
         except IndexError:
             return
         self.tableWidget.removeRow(row)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
+        self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
 
     def update_unit_combobox(self):
         """update and populate comboBox_Unit based on the selected cost type (comboBox_CostType)"""
-        self.comboBox_Unit.clear()  # Clear existing options
+        self.comboBox_Unit.clear()
         if self.comboBox_CostType.currentText() == 'time':
             self.comboBox_Unit.addItems(['minute','second', 'hour', 'standard'])
         else:
@@ -146,20 +142,17 @@ class ui_run_isochrone_ign():
         for layer in QgsProject.instance().mapLayers().values():
                     if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                         self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
-        self.dlg.show()
 
-        if self.dlg.exec_():
+        ui=self.dlg.exec()
+
+        if ui == QtWidgets.QDialog.Accepted:
             try:
-                if self.dlg.tableWidget.rowCount()==0:
-                    QtWidgets.QMessageBox.warning(self.dlg, "Warning", "Please add at least one input.")
-                    return
-                else:
-                    for index,data in enumerate(self.dlg.getQTableWidgetData()):
-                        layer_selected=QgsProject.instance().mapLayer(self.dlg.list_layers[index])
-                        layer=prepVector.layer_to_geodataframe(layer_selected)
-                        layer.to_crs('EPSG:4326', inplace=True)
-                        isochrone=Isochrone_API_IGN(layer,list(map(int,data[1].split(','))),**eval(data[2]))
-                        QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone.output, "Isochrone_{}".format(layer_selected.name()), "ogr"))
+                for index,data in enumerate(self.dlg.getQTableWidgetData()):
+                    layer_selected=QgsProject.instance().mapLayer(self.dlg.list_layers[index])
+                    layer=prepVector.layer_to_geodataframe(layer_selected)
+                    layer.to_crs('EPSG:4326', inplace=True)
+                    isochrone=Isochrone_API_IGN(layer,list(map(int,data[1].split(','))),**eval(data[2]))
+                    QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone.output, "Isochrone_{}".format(layer_selected.name()), "ogr"))
             except RuntimeError as e:
                 raise e
             except ValueError as e:
