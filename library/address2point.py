@@ -11,6 +11,8 @@
 """
 import geopandas as gpd
 import requests
+from requests.exceptions import RequestException
+from .utilsLibrary import decorators
 
 class AddressSearch:
     """
@@ -44,7 +46,9 @@ class AddressSearch:
         except Exception as err:
             raise RuntimeError("An error occurred: {}".format(err))
 
+    
     @staticmethod
+    @decorators.retryRequest(min_wait=1,wait_multiplier=2,max_retries=5,exceptions=(RequestException))
     def search_address_API_BAN( q: str, limit: int = 5, autocomplete: int = 0, citycode: int = None, postcode: int = None, type_search: str =None, lat: float = None, lon: float = None) -> gpd.GeoDataFrame:
         """Search for an address located in France, using the API Adresse from data.gouv.fr
         https://adresse.data.gouv.fr/outils/api-doc/adresse

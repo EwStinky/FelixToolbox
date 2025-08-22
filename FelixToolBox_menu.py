@@ -2,10 +2,9 @@
 /***************************************************************************
     __init__ - FelixToolBox QGIS plugins menu class
                              -------------------
-        begin                : 05/03/2025
+        start                : 05/03/2025
         email                : felix.gardot@gmail.com
-	    copyright            : (c) 2025 by Félix GARDOT
-        github               : https://!github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 
@@ -66,11 +65,17 @@ class felixtoolbox_menu:
         icon = QIcon(os.path.dirname(__file__) + "/icons/1F9ED_color.png")
         self.add_submenu(self.geocoding_menu, icon)
 
-        #3.A. Isochrone ORS Tools API action
+        #3.A. Address to point action
         icon = QIcon(os.path.dirname(__file__) + "/icons/E0A9_color.png")  
         self.adress2point = QAction(icon, u'Address to Point', self.iface.mainWindow())
         self.adress2point.triggered.connect(lambda: ui_run_address2point().run())
         self.geocoding_menu.addAction(self.adress2point)
+
+        #3.B. Request API SIRENE action
+        icon = QIcon(os.path.dirname(__file__) + "/icons/1F4BC_color.png")  
+        self.requestSirene = QAction(icon, u'Siret located within polygon', self.iface.mainWindow())
+        self.requestSirene.triggered.connect(lambda: ui_run_request_sirene().run())
+        self.geocoding_menu.addAction(self.requestSirene)
 
     def unload(self):
         if self.menu != None:

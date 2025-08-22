@@ -24,11 +24,13 @@ Because it is not oriented on one specific topic, Félix's Toolbox contains seve
 
 👉 **Isochrone ORS API**: Requests isochrones from the ORS (Openrouteservice) API for the selected point layers and their parameters, and then dissolve for each layer the isochrones per time unit.
 
-👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require an API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected point layers and their parameters, and then dissolve for each layer the isochrones per time unit.
+👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require any API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected layers and their parameters, and then dissolve for each layer the isochrones per time unit.
 
-👉 **Map Screenshot**: Produces instantly a map of your current QGIS instance view and all its active layers, with a personalized title and sources.
+👉 **Map Screenshot**: Produces instantly a map of your current QGIS instance view with all its active layers, with a personalized title and sources if needed.
 
-👉 **Address to Point**: Geocode addresses from the Nominatim API or the BAN API (France only) by writing addresses or by using a CSV file.
+👉 **Address to Point**: Geocodes addresses from the Nominatim API or the BAN API (France only) by writing addresses or by using a CSV file.
+
+👉 **Siret located within polygon**: Produces a point layer of every active establishement located within a selected polygon. These establishements come from the SIRENE API (Système d’Identification du Répertoire des Entreprises et des Établissements). The API provides comprehensive, up-to-date information about companies, establishments, and self-employed individuals in France.
 
 ## ⚙️ Installation 
 
@@ -49,7 +51,7 @@ Because it is not oriented on one specific topic, Félix's Toolbox contains seve
 - QGIS 3.x or later
 - Python 3.x
 - pandas
-- geopandas
+- geopandas < 1.0.0 (because of the version used in QGIS 3.x)
 - requests
 
 ## 🎉 Contributing
