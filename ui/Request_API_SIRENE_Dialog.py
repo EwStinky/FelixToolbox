@@ -15,6 +15,7 @@ from .utils import load_ui, prepVector, usefullVariable
 from ..library import siretInPolygonFilteredByCoordinates, siretInPolygonFilteredByAddresses,apiSireneUtils
 
 from qgis.PyQt import QtWidgets
+from PyQt5.QtCore import Qt
 from qgis.core import QgsProject, QgsMapLayerType, QgsWkbTypes
 from qgis.core import QgsVectorLayer
 
@@ -35,6 +36,9 @@ class ui_mg_request_sirene(QtWidgets.QDialog, load_ui('Request_API_SIRENE.ui').F
         self.pushButton_Ajouter_table.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
         self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
+        self.pushButton_selectAll_fields.clicked.connect(lambda: self.setCheckStateAllItems(self.listWidget_field,Qt.Checked))
+        self.pushButton_deselectAll_fields.clicked.connect(lambda: self.setCheckStateAllItems(self.listWidget_field,Qt.Unchecked))
+        self.lineEdit_searchNAF.textChanged.connect(self.searchNAFbyKeyword)
         self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
 
     def closeEvent(self, event):
@@ -44,12 +48,8 @@ class ui_mg_request_sirene(QtWidgets.QDialog, load_ui('Request_API_SIRENE.ui').F
         self.tableWidget.setRowCount(0)
         self.pushButton_Ajouter_table.clicked.disconnect()
         self.pushButton_Effacer_ligne_table.disconnect()
-        self.lineEdit_field.clear()
-        self.lineEdit_field.setPlaceholderText("Ex: activitePrincipaleUniteLegale...")
         self.lineEdit_api_key.clear()
         self.lineEdit_api_key.setPlaceholderText("Add your API key")
-        self.lineEdit_activity.clear()
-        self.lineEdit_activity.setPlaceholderText("Ex: 47, 10.13B, 38.3...")
         super().closeEvent(event)
 
     def addRowQTableWidget(self): 
@@ -78,8 +78,8 @@ class ui_mg_request_sirene(QtWidgets.QDialog, load_ui('Request_API_SIRENE.ui').F
                     self.comboBox_layer_QGIS.currentText(),
                     self.lineEdit_api_key.text(),
                     self.comboBox_processing.currentText(),
-                    self.lineEdit_field.text(),
-                    self.lineEdit_activity.text()]
+                    ','.join(self.retrieveCheckedItems(self.listWidget_field)),
+                    ','.join([value.split()[0] for value in self.retrieveCheckedItems(self.listWidget_NAF)]),]
                 self.list_layers.append(self.comboBox_layer_QGIS.itemData(self.comboBox_layer_QGIS.currentIndex()))
                 self.comboBox_layer_QGIS.setCurrentIndex(-1) #On retourne à la sélection vid
                 numRows = self.tableWidget.rowCount()
@@ -107,89 +107,86 @@ class ui_mg_request_sirene(QtWidgets.QDialog, load_ui('Request_API_SIRENE.ui').F
         for row in range(self.tableWidget.rowCount()):
             data.append([self.tableWidget.item(row, col).text() for col in range(self.tableWidget.columnCount())])
         return [data[i:i+column_number] for i in range(0,len(data),column_number)][0]
-
-    def field_combo_box_selected(self):
-        selected_item = self.comboBox_filed.currentText()
-        current_text = self.lineEdit_field.text()
-        
-        if current_text:
-            self.lineEdit_field.setText(f"{current_text}, {selected_item}")
-        else:
-            self.lineEdit_field.setText(selected_item)
-
-    def activty_combo_box_selected(self):
-        selected_item = self.comboBox_activity.currentText()
-        current_text = self.lineEdit_activity.text()
-        if current_text:
-            self.lineEdit_activity.setText(f"{current_text}, {selected_item}")
-        else:
-            self.lineEdit_activity.setText(selected_item)
     
+    @staticmethod
+    def fillListWidget(ListWidget, elements:list, status:Qt.CheckState=Qt.Unchecked):
+        """Fill a QListWidget with the elements of a list and make them checkable"""
+        for index, value in enumerate(elements):
+            item=QtWidgets.QListWidgetItem(str(value))
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setCheckState(status)
+            ListWidget.addItem(item)
+
+    @staticmethod
+    def retrieveCheckedItems(ListWidget):
+        """Retrieve the checked items from a QListWidget and return them as a list"""
+        checked_items = []
+        for index in range(ListWidget.count()):
+            item = ListWidget.item(index)
+            if item.checkState() == Qt.Checked:
+                checked_items.append(item.text())
+        return checked_items
+    
+    @staticmethod
+    def setCheckStateAllItems(ListWidget,checkState:Qt.CheckState):
+        """Set the check state of all items that are enable in a QListWidget"""
+        for index in range(ListWidget.count()):
+            if ListWidget.item(index).flags() & Qt.ItemIsEnabled: 
+                item = ListWidget.item(index)
+                item.setCheckState(checkState)
+    
+    def searchNAFbyKeyword(self, text:str):
+        """show the differents items in selfistWidget_NAF that contains the keywords entered in lineEdit_searchNAF"""
+        filter_text = self.lineEdit_searchNAF.text().lower()
+        for i in range(self.listWidget_NAF.count()):
+            item = self.listWidget_NAF.item(i)
+            item_text = item.text().lower()
+            self.listWidget_NAF.setRowHidden(i, filter_text not in item_text)
+
     def prepLayer(self, index:int):
         """function return the selected layer as a gpd.GeoDataFrame and the layer name"""
         layer_selected=QgsProject.instance().mapLayer(self.list_layers[index])
         return prepVector.layer_to_geodataframe(layer_selected), layer_selected.name()
     
-    @staticmethod
-    def add_extra_fields(field,extra_field):
-        """Add the other fields that the user chosen to add to the request from the UI"""
-        for new_field in set([u for u in extra_field.replace(" ", ",").split(',') if u!='']):
-            field+=','+new_field
-        return field
-        
-
-    @staticmethod
-    def add_activity_filter(activity):
-        """Add the activities that the user chosen to add to the request as filter"""
-        list_possible_NAF = [clean_activity for clean_activity in set([u for u in activity.replace(" ", ",").split(',') if u!=''])]
-        return [code for code in list_possible_NAF if code.replace('.','',1).isdigit()]
-
 class ui_run_request_sirene():
     """ui_run_isochrone is used to run Isochrones_ORS_Tools_GeopandasV3's UI.
     And use the data selected from the UI to calculate isochrones and display them in QGIS.
     """
     def __init__(self):
         self.dlg = ui_mg_request_sirene()
-        self.fields ='siren,dateCreationUniteLegale,siret,dateCreationEtablissement,trancheEffectifsEtablissement,enseigne1Etablissement,codeCommuneEtablissement,numeroVoieEtablissement,typeVoieEtablissement,libelleVoieEtablissement,codePostalEtablissement,libelleCommuneEtablissement,activitePrincipaleEtablissement,etatAdministratifEtablissement,coordonneeLambertAbscisseEtablissement,coordonneeLambertOrdonneeEtablissement'
-        self.activity = []
     def run(self): 
         self.dlg.comboBox_layer_QGIS.clear()
         for layer in QgsProject.instance().mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PolygonGeometry:
                 self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
-        self.dlg.comboBox_filed.addItems(usefullVariable.all_API_SIREN_fields)
-        self.dlg.comboBox_activity.addItems(usefullVariable.nomenclature_NAFV2)
-        self.dlg.comboBox_filed.currentIndexChanged.connect(self.dlg.field_combo_box_selected)
-        self.dlg.comboBox_activity.currentIndexChanged.connect(self.dlg.activty_combo_box_selected)
+        self.dlg.fillListWidget(self.dlg.listWidget_field,usefullVariable.all_API_SIREN_fields)
+        for i in range(12): #Pre-check the needed fields
+            item2check=self.dlg.listWidget_field.item(i)
+            item2check.setCheckState(Qt.Checked)  
+            item2check.setFlags(item2check.flags() & ~Qt.ItemIsEnabled)  
+        self.dlg.fillListWidget(self.dlg.listWidget_NAF,usefullVariable.nomenclature_NAFV2)
         ui = self.dlg.exec()
 
         if ui == QtWidgets.QDialog.Accepted:
             try:
                 for index,data in enumerate(self.dlg.getQTableWidgetData()):
                     layer_selected, layer_name = self.dlg.prepLayer(index)
-                    if data[3]:
-                        self.fields = self.dlg.add_extra_fields(self.fields,data[3])
-                    if data[4]:
-                        self.activity = self.dlg.add_activity_filter(data[4])
+                    activity = data[4].split(',') if data[4] else []
                     request_parameters={
                     "api_key":data[1].split()[0], 
-                    "champs": self.fields,
+                    "champs": data[3],
                     "nombre": 100,
                     "curseur": '*',
                     "date": '2099-01-01'
                     }
                     if data[2]=='Selection from coordinates (Fastest)':
-                        request_SIRENE_output = siretInPolygonFilteredByCoordinates(layer_selected, request_parameters, self.activity).establishments_SIRENE_in_polygon_coordinates()
+                        request_SIRENE_output = siretInPolygonFilteredByCoordinates(layer_selected, request_parameters, activity).establishments_SIRENE_in_polygon_coordinates()
                     elif data[2]=='Selection from address':
-                        request_SIRENE_output = siretInPolygonFilteredByAddresses(layer_selected, request_parameters, self.activity).establishments_SIRENE_in_polygon_address()
+                        request_SIRENE_output = siretInPolygonFilteredByAddresses(layer_selected, request_parameters, activity).establishments_SIRENE_in_polygon_address()
                     else: 
-                        request_coordinates = siretInPolygonFilteredByCoordinates(layer_selected, request_parameters, self.activity).establishments_SIRENE_in_polygon_coordinates()
-                        request_addresse = siretInPolygonFilteredByAddresses(layer_selected, request_parameters, self.activity).establishments_SIRENE_in_polygon_address()
+                        request_coordinates = siretInPolygonFilteredByCoordinates(layer_selected, request_parameters, activity).establishments_SIRENE_in_polygon_coordinates()
+                        request_addresse = siretInPolygonFilteredByAddresses(layer_selected, request_parameters, activity).establishments_SIRENE_in_polygon_address()
                         request_SIRENE_output = apiSireneUtils.mergeRequestTypeOutput(request_coordinates,request_addresse)
                     QgsProject.instance().addMapLayer(QgsVectorLayer(request_SIRENE_output.to_json(), "Siret_located_in_{}".format(layer_name), "ogr"))
-            except RuntimeError as e:
-                raise e
-            except ValueError as e:
-                raise e
             except Exception as e:
                 raise e

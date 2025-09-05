@@ -73,6 +73,8 @@ class apiSireneRequest:
         except requests.exceptions.HTTPError as e:
             if call.status_code == 404: # Not Found, no result found
                 return None
+            if call.status_code == 401: # Not authorized, invalid API key
+                raise ValueError("Invalid API key provided.")
             else:
                 raise e
       
@@ -231,7 +233,7 @@ class siretInPolygonFilteredByCoordinates(apiSireneRequest):
             raise f"Failed to retrieve data for {xmin},{ymin},{xmax},{ymax} : {e}"
         
     
-    def establishments_SIRENE_in_polygon_coordinates(self) -> pd.DataFrame:
+    def establishments_SIRENE_in_polygon_coordinates(self) -> gpd.GeoDataFrame:
         """ Function to retrieve establishments within the polygon defined by the GeoDataFrame's geometry.
         Uses the bounding box of the polygon to query the SIRENE API for establishments, and check if
         the establishments' coordinates intersect with the polygon's geometry.
@@ -260,7 +262,8 @@ class siretInPolygonFilteredByCoordinates(apiSireneRequest):
                 clipped_points = output_api_gdf.clip(row['geometry'])
                 if not clipped_points.empty:
                     output = pd.concat([output, clipped_points], ignore_index=True)
-            output.set_geometry('geometry', inplace=True)
+            output.set_geometry('geometry', inplace=True, crs='EPSG:2154')
+            output.to_crs("EPSG:4326", inplace=True)
             output.drop_duplicates(['siret','siren'], inplace=True)
             return output 
         except Exception as e:
@@ -339,10 +342,10 @@ class siretInPolygonFilteredByAddresses(apiSireneRequest):
                     raise ValueError(f"No roads found in Overpass API using the bounding box for index {index} with coordinates: {row['miny']}, {row['minx']},{row['maxy']}, {row['maxx']}")
                 else:
                     #This section intersects the roads from osm with the commune from API Carto to add the commune infos, there are 3 options:
-                    if road_nt_cliped.geometry.within(intersected_commune.unary_union).all(): #1. it checks if the roads are already within the communes that were previously requested
+                    if road_nt_cliped.geometry.within(intersected_commune.unary_union).all() if not intersected_commune.empty else False: #1. it checks if the roads are already within the communes that were previously requested
                         road_nt_intersected_with_commune=gpd.overlay(road_nt_cliped, intersected_commune, how='intersection')
                     else:
-                        try: #2. If not, it tries to get the commune from the API Carto using the convex hull geometrt of the roads, to reduce geometry and thus the URL size.
+                        try: #2. If not, it tries to get the commune from the API Carto using the convex hull geometry of the roads, to reduce geometry and thus the URL size used in the request.
                             bboxTest = False
                             return_api_carto=requestOtherApi.get_request_api_carto_commune(geom=apiSireneUtils.gdf_convex_hull_to_geojson(road_nt_cliped))
                             intersected_commune = pd.concat([intersected_commune, gpd.GeoDataFrame.from_features(return_api_carto.json()['features'],crs="EPSG:4326")])
@@ -392,7 +395,7 @@ class siretInPolygonFilteredByAddresses(apiSireneRequest):
                 output_gdf.drop_duplicates(['siret','siren'], inplace=True)
                 return output_gdf
             else:
-                raise ValueError('No establishments found within the polygon using the addresses (Overpass API) found within the polygon.')
+                raise ValueError('No establishments found within the input polygon using the addresses collected from Overpass API with the same polygon used as input for the request.')
         except Exception as e:
             raise e
 
