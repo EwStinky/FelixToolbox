@@ -1,8 +1,8 @@
 # FelixToolbox
 
-Félix's Toolbox is a QGIS plugin designed to regroup multiple GIS-oriented python scripts that were created through the time, for various professional projects, primarily coming from a city-planning perspective. 
+Félix's Toolbox is a QGIS plugin designed to regroup multiple GIS-oriented python scripts that were created through time, for various professional projects, primarily stemming from a city-planning perspective. 
 Félix's Toolbox provides intuitive features to facilitate various tasks that either do not exist in QGIS, or require several processes to be achieved.
-The plugin contains several tools such as the creation of isochrones from several existing API, geocoding of addresses or the location of specific business within a polygon. These tools are not necesseraly related to each other, and are added throughout time, 
+The plugin contains several tools such as the creation of isochrones from several existing API, geocoding of addresses, or the location of specific business within a polygon. These tools are not necessarily related to each other, and are added throughout time, 
 
 ## 🛠 Project Structure
 
@@ -10,7 +10,7 @@ The plugin contains several tools such as the creation of isochrones from severa
 - `library/`: Directory containing every python file created, each file is corresponding to processing of a tool.
   - `__init__.py`: file selecting all the required python files needed for the tool processing.
   - `toolName.py`: file containing all the processes for the use of this tool.
-  - `utilsLibrary.py`: file containing several functions that is or could be used in several library (ex: decorators).
+  - `utilsLibrary.py`: file containing several functions that is or could be used in several libraries (ex: decorators).
 - `ui/`: Directory containing UI files for each tool that requires one.
   - `__init__.py`: file selecting all the required python files needed for the tool's UI.
   - `toolName.ui`: UI file personalized for each specific tool.
@@ -24,15 +24,15 @@ The plugin contains several tools such as the creation of isochrones from severa
 
 ## 🎁 Features
 
-👉 **Isochrone ORS API**: Requests isochrones from the ORS (Openrouteservice) API, using point layers as input, and deliver the isochrones based on the processing mode selected by the user.
+👉 **Isochrone ORS API**: Requests isochrones from the ORS (Openrouteservice) API, using point layers as input, and delivers the isochrones based on the processing mode selected by the user.
 
 👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require any API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected layers and their parameters.
 
-👉 **Map Screenshot**: Produces instantly a map of your current QGIS instance view with all its active layers, with a personalized title and sources if needed.
+👉 **Map Screenshot**: Instantly produces a map of your current QGIS instance view with all its active layers, with a personalized title and sources if needed.
 
 👉 **Address to Point**: Geocodes addresses in your QGIS instance using the Nominatim API or the BAN API (France only) by writing addresses or by using a CSV file as input.
 
-👉 **Siret located within polygon**: Produces a point layer of every active establishement located within a selected polygon. These establishements come from the SIRENE API (Système d’Identification du Répertoire des Entreprises et des Établissements). The API provides comprehensive, up-to-date information about companies, establishments, and self-employed individuals in France. A filter can also be applied if only specific types of businesses are selected by the user.
+👉 **Siret located within polygon**: Produces a point layer of every active establishment located within a selected polygon. These establishments come from the SIRENE API (Système d’Identification du Répertoire des Entreprises et des Établissements). The API provides comprehensive, up-to-date information about companies, establishments, and self-employed individuals in France. A filter can also be applied if only specific types of businesses are selected by the user.
 
 ## ⚙️ Installation 
 
