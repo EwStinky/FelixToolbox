@@ -10,69 +10,68 @@
     api_ors_key: string representing the API key for the ORS Tools services
     input_coordinates: a list of a list of coordinates (X,Y) of each point need to get an isochrone, 
                              -------------------
-        begin                : 2025-05-15
+        start                : 2025-05-15
         email                : felix.gardot@gmail.com
-        github               : https://github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 import pandas as pd
 import geopandas as gpd
 import requests
 from shapely.geometry import shape
+import libpysal
 import time
+from .utilsLibrary import decorators
 
 class Isochrone_API_IGN:
-    def __init__(self, input_layer, range_value:list[int], resource='bdtopo-valhalla', costType="time", profile='car', direction='arrival', constraints=None, geometryFormat='geojson', distanceUnit='meter', timeUnit='minute', crs='EPSG:4326'):
+    def __init__(self, input_layer:gpd.GeoDataFrame, range_value:list[int], processingMode:int=0, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326', voronoi_extend_layer=None):
         """Initializes the Isochrone_API_IGN_V2 class the input layer and the range value.
         Every other parameters are set to their default value but can be changed, they are regrouped in a list to be used in 
         the request_IGN_isochrone_api function.
 
         Args:
-            input_layer: GeoDataFrame: a GeoDataFrame object representing the location of the points from which the isochrones will be calculated
-            range_value: list[int]: a list of integers representing the time/distance values for which the isochrones will be calculated
-            for the other parameters, see the request_IGN_isochrone_api function
+            * input_layer (gpd.GeoDataFrame): a GeoDataFrame object representing the location of the points from which the isochrones will be calculated.
+            * range_value (list[int]): a list of integers representing the time/distance values for which the isochrones will be calculated.
+            * processingMode (int): Processing mode chosen by the user that decided the output type coming from the Isochrone_API_IGN.main().
+            * voronoi_extend_layer (str | tuple): Selected input for the clipping of the voronoi's cells if the voronoi processing mode has been selected.
+            * for the other parameters in self.params, see the request_IGN_isochrone_api function
         """
         self.input_layer= input_layer
         self.range_value = range_value
+        self.processingMode = processingMode
         self.params=[resource,costType,profile,direction,constraints,geometryFormat,distanceUnit,timeUnit,crs]
+        self.voronoi_extend_layer=voronoi_extend_layer
         try:
             self.output = self.main().to_json()
         except RuntimeError as e:
             raise RuntimeError("An error occurred while processing the isochrone API request: {}".format(e))
 
     @staticmethod
-    def get_points_coordinates(gdf,geometry_column: str):
-        """
-        The function `get_points_coordinates` retrieves the coordinates of the points in a gdf layer.
-        and returns a list of string representing the coordinates (X,Y) of each point in the layer.
-        """
-        return ['{},{}'.format(f.x,f.y) for f in gdf['{}'.format(geometry_column)]]
-
-    @staticmethod
-    def request_IGN_isochrone_api(point:str , costValue:int, resource='bdtopo-valhalla', costType="time", profile='car', direction='arrival', constraints=None, geometryFormat='geojson', distanceUnit='meter', timeUnit='minute', crs='EPSG:4326') -> dict:
+    @decorators.retryRequest(min_wait=1, wait_multiplier=2, max_retries=3)
+    def request_IGN_isochrone_api(point:str , costValue:int, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326') -> gpd.GeoDataFrame:
         """
         The function `request_IGN_isochrone_api` prepares the body parameters for the isochrone API request from IGN service.
         It then sends a GET request to the IGN isochrone API and returns the response from the API as a geojson.
 
-        inputs:
-        * point: str: Coordinates of a point position. This is the point from which calculations are made. It must be in EPSG:4326 format.
-        * costValue: int: Cost value used for calculation. You can, for example, specify a distance or a time, depending on the chosen optimization. 
-        The unit will also depend on the distanceUnit and timeUnit parameters.
-        * resource: str: Resource used for calculation. Possible values are: bdtopo-valhalla, bdtopo-pgr, pgr_sgl_r100_all, graph_pgr_D013. 
-        * costType: str: Type of cost used for calculation. The unit will also depend on the distanceUnit and timeUnit parameters. 
-        Possible values are: time, distance
-        * profile: str: Displacement mode used for calculation. Available values are: car, pedestrian
-        * direction: str: This defines the direction of travel. Possible values are: arrival, departure. 
-        Either define a starting point and obtain potential arrival points.  Or define an arrival point and obtain the potential departure points.  
-        * constraints: array[str]: Constraints used for calculation, this is a JSON object. The available parameters are present in the GetCapabilities.
-        I'm not so sure but it seems that only one constraint can be used at a time, at least based on my tests.
-        * geometryFormat: str: Geometry format in the response. Can be in GeoJSON or Encoded Polyline format.
-        * distanceUnit: str: Unit of returned distances. Possible values are: meter, kilometer
-        * timeUnit: str: Unit of returned times. Possible values are: second, minute, hour, standard
-        * crs: str: Coordinate reference system used for calculation. The default value is EPSG:4326. The available parameters are present in the GetCapabilities.
+        Args:
+            point (str): Coordinates of a point position: 'lon,lat'. This is the point from which calculations are made. It must be in EPSG:4326 format.
+            costValue (int): Cost value used for calculation. You can, for example, specify a distance or a time, depending on the chosen optimization. 
+                             The unit will also depend on the distanceUnit and timeUnit parameters.
+            resource (str): Resource used for calculation. Possible values are: bdtopo-valhalla, bdtopo-pgr, pgr_sgl_r100_all, graph_pgr_D013. 
+            costType (str): Type of cost used for calculation. The unit will also depend on the distanceUnit and timeUnit parameters. 
+                            Possible values are: time, distance
+            profile (str): Displacement mode used for calculation. Available values are: car, pedestrian
+            direction (str): This defines the direction of travel. Possible values are: arrival, departure. 
+                             Either define a starting point and obtain potential arrival points.  Or define an arrival point and obtain the potential departure points.  
+            constraints (array[str]): Constraints used for calculation, this is a JSON object. The available parameters are present in the GetCapabilities.
+                                      I'm not so sure but it seems that only one constraint can be used at a time, at least based on my tests.
+            geometryFormat (str): Geometry format in the response. Can be in GeoJSON or Encoded Polyline format.
+            distanceUnit (str): Unit of returned distances. Possible values are: meter, kilometer
+            timeUnit (str): Unit of returned times. Possible values are: second, minute, hour, standard
+            crs (str): Coordinate reference system used for calculation. The default value is EPSG:4326. The available parameters are present in the GetCapabilities.
 
         return: 
-        * gdf: GeoDataFrame: A GeoDataFrame representing the isochrone output from the IGN API output (json). 
+            gdf (gpd.GeoDataFrame): A GeoDataFrame representing the isochrone output from the IGN API output (json). 
         """
         api_headers  = {
             'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
@@ -103,21 +102,20 @@ class Isochrone_API_IGN:
         return gdf
     
     @staticmethod
-    def post_api_processing(list_gdf:list, range_value:list):
+    def post_api_dissolve_processing(input_gdf:gpd.GeoDataFrame, range_value:list) -> gpd.GeoDataFrame:
         """post_api_processing runs a bunch of processing on the isochrones output from the ORS API services.
         It dissolves the isochrones per time value and then calculates the difference between each layer 
         (layer x+1 - layer x).
 
         Args:
-            list_gdf (list): list of GeoDataFrames (gdf) representing the isochrones output (maximum 5 points) 
-            from the IGN API for time/distance intervals
+            input_gdf (gpd.GeoDataFrame): GeoDataFrames containing isochrones from the API request.
             range_value: list[int]: a list of integers representing the time/distance values for which the isochrones will be calculated
 
         Returns:
             A GeoDataFrame representing the merged isochrones after the difference of each layers.
             Three new columns are added to the gdf to represent the value used for each isochrone, the X and Y coordinates of the centroid of the isochrone. 
         """
-        dissolved_gdf=[list_gdf[list_gdf['costValue'] == y].dissolve() for y in range_value] #dissovle the layer per time value
+        dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] #dissovle the layer per time value
         difference = []
         difference.append(dissolved_gdf[0])  #Append the first layer without processing
         for u in range(len(range_value) - 1): #Loop to get the difference between each layer
@@ -128,7 +126,26 @@ class Isochrone_API_IGN:
         gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
         return gdf
     
-    def main(self):
+    @staticmethod
+    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:tuple=None) -> gpd.GeoDataFrame:
+        """Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points."""
+        dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] 
+        difference = []
+        difference.append(dissolved_gdf[0])  
+        for u in range(len(range_value) - 1): 
+            output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
+            difference.append(output)
+        gdf = pd.concat(difference)
+        gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
+        gdf.to_crs(epsg=3857, inplace=True) #Need a projected CRS to work, right now I'm using web mercator for a global usage but I'm not sure which one to use!
+        gdf.set_geometry('geometry', inplace=True)
+        point_layer.to_crs("EPSG:3857",inplace=True)
+        voronoi_polygon=libpysal.cg.voronoi_frames(geometry =point_layer, clip=voronoi_extend_layer, as_gdf=True)
+        gdf_voronoi = gpd.overlay(gdf, voronoi_polygon[0], how='intersection')
+        gdf_voronoi.to_crs(4326,inplace=True)
+        return gdf_voronoi
+
+    def main(self) -> gpd.GeoDataFrame:
         """
         The function `main` is the main function of the class. It retrieves the coordinates of the points in the input layer,
         then it loops through each point and calls the `request_IGN_isochrone_api` function to get the isochrones for each point.
@@ -136,19 +153,27 @@ class Isochrone_API_IGN:
         the function respects the usage policy of the IGN API by waiting 1 second after every 5 requests.
         """
         try:
-            list_coordinates = self.get_points_coordinates(self.input_layer, 'geometry')
             list_gdf = []
             count_api=0
-            for coordinates in list_coordinates:
+            for coordinates in ['{},{}'.format(f.x,f.y) for f in self.input_layer['{}'.format('geometry')]]:
                 for value in self.range_value:
                     if count_api == 5:
                         time.sleep(1)
                         count_api=1
-                        list_gdf.append(self.request_IGN_isochrone_api(coordinates, value, *self.params))
+                        output = self.request_IGN_isochrone_api(coordinates, value, *self.params)
+                        output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
+                        list_gdf.append(output)
                     else:
                         count_api+=1
-                        list_gdf.append(self.request_IGN_isochrone_api(coordinates, value, *self.params))        
-            return self.post_api_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value)
+                        output = self.request_IGN_isochrone_api(coordinates, value, *self.params)
+                        output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
+                        list_gdf.append(self.request_IGN_isochrone_api(coordinates, value, *self.params))
+            if self.processingMode == 0: 
+                return self.post_api_dissolve_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value)
+            elif self.processingMode == 1:
+                return gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True))
+            else:
+                return self.post_api_voronoi_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value, self.input_layer, self.voronoi_extend_layer)
         except requests.exceptions.HTTPError as http_err:
             raise RuntimeError("HTTP error occurred: {}".format(http_err))
         except requests.exceptions.ConnectionError as conn_err:
@@ -161,51 +186,3 @@ class Isochrone_API_IGN:
             raise ValueError("JSON error occurred: {}".format(json_err)) 
         except Exception as err:
             raise RuntimeError("An error occurred: {}".format(err)) 
-
-if __name__ == "__main__":
-    #example usage for QGIS
-
-    from qgis.PyQt import uic
-    from qgis.core import QgsVectorLayer
-    from PyQt5.QtWidgets import QInputDialog
-    from qgis.core import QgsProject
-
-    def layerSelectQGIS():
-        """
-        The function `layerSelectQGIS` allows the user to select a layer from the current QGIS project.
-        
-        :return: returns the selected layer from the QGIS project based on user input. -> QgsVectorLayer
-        """
-        layer,test=QInputDialog.getItem(None,'Select your layer','Layer selected:',[layer.name() for layer in QgsProject.instance().mapLayers().values()],0)
-        return QgsProject.instance().mapLayersByName(layer)[0]
-
-    def layer_to_geodataframe(layer: QgsVectorLayer) -> gpd.GeoDataFrame:
-        """Transform a QgsVectorLayer to a gdp.Geodataframe
-        copying its attributes and geometries.
-
-        Args:
-            layer (QgsVectorLayer): class object from qgis.core
-        Returns:
-            gdp.Geodataframe: a GeoDataFrame object with the same 
-            attributes, geometry and crs as the input layer
-        """
-        if layer.isValid() and layer.dataProvider().name() == 'ogr':
-            return gpd.read_file(layer.source())
-        else:
-            features = layer.getFeatures()
-            geometries = []
-            attributes = []
-            for feature in features:
-                geometries.append(feature.geometry().asWkt())
-                attributes.append(feature.attributes())
-            column_names = [field.name() for field in layer.fields()]
-            gdf = gpd.GeoDataFrame(attributes, columns=column_names)
-            gdf['geometry'] = geometries
-            gdf['geometry'] = gpd.GeoSeries.from_wkt(gdf['geometry'])
-            return gdf.set_crs(layer.crs().authid())
-        
-    layer=layerSelectQGIS()
-    gdf=layer_to_geodataframe(layer)
-    gdf.to_crs('EPSG:4326', inplace=True)
-    isochrone = Isochrone_API_IGN(gdf, [10], profile='pedestrian', resource ='bdtopo-pgr',constraints=['{"constraintType":"banned","key":"wayType","operator":"=","value":"autoroute"}']).output
-    QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone, "Isochrone_test", "ogr"))

@@ -1,8 +1,8 @@
 # FelixToolbox
 
-Félix's Toolbox is a QGIS plugin designed to regroup multiple GIS-oriented python scripts that were created through the time, for various professional projects. 
-Félix's Toolbox provides intuitive features to facilitate various tasks that either do not exist in QGIS, or require several processes.
-Because it is not oriented on one specific topic, Félix's Toolbox contains several tools that are not necesseraly related to each other, and are added throughout time.
+Félix's Toolbox is a QGIS plugin designed to regroup multiple GIS-oriented python scripts that were created through the time, for various professional projects, primarily coming from a city-planning perspective. 
+Félix's Toolbox provides intuitive features to facilitate various tasks that either do not exist in QGIS, or require several processes to be achieved.
+The plugin contains several tools such as the creation of isochrones from several existing API, geocoding of addresses or the location of specific business within a polygon. These tools are not necesseraly related to each other, and are added throughout time, 
 
 ## 🛠 Project Structure
 
@@ -10,10 +10,12 @@ Because it is not oriented on one specific topic, Félix's Toolbox contains seve
 - `library/`: Directory containing every python file created, each file is corresponding to processing of a tool.
   - `__init__.py`: file selecting all the required python files needed for the tool processing.
   - `toolName.py`: file containing all the processes for the use of this tool.
+  - `utilsLibrary.py`: file containing several functions that is or could be used in several library (ex: decorators).
 - `ui/`: Directory containing UI files for each tool that requires one.
   - `__init__.py`: file selecting all the required python files needed for the tool's UI.
   - `toolName.ui`: UI file personalized for each specific tool.
-  - `utils.py`: file containing several useful classes or functions the correct use and management of the UI.
+  - `toolName_Dialog.py`: files containing all the functions to run and manage the tool's UI.
+  - `utils.py`: file containing several useful functions or variables that facilitate the management of the UIs.
 - `__init__.py`: file initializing the QGIS plugin.
 - `FelixToolBox_menu.py` : file containing the plugin's framework for its menu and submenus.
 - `LICENSE` : GNU GENERAL PUBLIC LICENSE
@@ -22,15 +24,15 @@ Because it is not oriented on one specific topic, Félix's Toolbox contains seve
 
 ## 🎁 Features
 
-👉 **Isochrone ORS API**: Requests isochrones from the ORS (Openrouteservice) API for the selected point layers and their parameters, and then dissolve for each layer the isochrones per time unit.
+👉 **Isochrone ORS API**: Requests isochrones from the ORS (Openrouteservice) API, using point layers as input, and deliver the isochrones based on the processing mode selected by the user.
 
-👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require any API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected layers and their parameters, and then dissolve for each layer the isochrones per time unit.
+👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require any API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected layers and their parameters.
 
 👉 **Map Screenshot**: Produces instantly a map of your current QGIS instance view with all its active layers, with a personalized title and sources if needed.
 
-👉 **Address to Point**: Geocodes addresses from the Nominatim API or the BAN API (France only) by writing addresses or by using a CSV file.
+👉 **Address to Point**: Geocodes addresses in your QGIS instance using the Nominatim API or the BAN API (France only) by writing addresses or by using a CSV file as input.
 
-👉 **Siret located within polygon**: Produces a point layer of every active establishement located within a selected polygon. These establishements come from the SIRENE API (Système d’Identification du Répertoire des Entreprises et des Établissements). The API provides comprehensive, up-to-date information about companies, establishments, and self-employed individuals in France.
+👉 **Siret located within polygon**: Produces a point layer of every active establishement located within a selected polygon. These establishements come from the SIRENE API (Système d’Identification du Répertoire des Entreprises et des Établissements). The API provides comprehensive, up-to-date information about companies, establishments, and self-employed individuals in France. A filter can also be applied if only specific types of businesses are selected by the user.
 
 ## ⚙️ Installation 
 
@@ -53,6 +55,7 @@ Because it is not oriented on one specific topic, Félix's Toolbox contains seve
 - pandas
 - geopandas < 1.0.0 (because of the version used in QGIS 3.x)
 - requests
+- libpysal
 
 ## 🎉 Contributing
 

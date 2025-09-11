@@ -1,11 +1,11 @@
 [general]
 name=Félix's Toolbox
-description=Collection of some of my tools that I've made for QGIS.
-about= It is not oriented on any specific topic, mostly about different projects that I've worked on. So I will add tools whenever I can and if I think it could be useful. I will not add very specific and project-oriented tools.
-version=1.0
+description=Félix's Toolbox provides a UI to a collection of tools that were made for city-planning projects in France.
+about= It is mostly oriented for city-planning projects, each of them have being made through different project that I've worked on. So I will add tools whenever I can and if I think it could be useful.
+version=1.1
 qgisMinimumVersion=3.0
 author=Félix GARDOT
 email=gardot.felix@gmail.com
 repository=https://github.com/EwStinky/FelixToolbox/blob/main/README.md
-tags=python, plots, toolbox, félix, Screenshot, isochrone, ORS, Nominatim, BAN, geocoding
+tags=python, plots, toolbox, félix, Screenshot, isochrone, ORS, IGN, Nominatim, BAN, geocoding
 icon=./icons/262E_color.png

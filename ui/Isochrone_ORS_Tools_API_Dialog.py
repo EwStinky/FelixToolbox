@@ -6,13 +6,13 @@
     and data preparation. And another class 'ui_run_isochrone' to run the 
     script through the UI. 
                              -------------------
-        begin                : 2025-03-17
+        start                : 2025-03-17
         email                : felix.gardot@gmail.com
-        github               : https://github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 from .utils import load_ui, prepVector
-from ..library import Isochrone_ORS_V3_QGIS
+from ..library import Isochrone_API_ORS
 
 from qgis.PyQt import QtWidgets
 from qgis.core import QgsProject, QgsMapLayerType, QgsWkbTypes
@@ -35,7 +35,10 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         self.pushButton_Ajouter_table.clicked.connect(self.addRowQTableWidget)
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
         self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
+        self.comboBox_processing_mode.currentIndexChanged.connect(self.update_voronoi_parameters)
         self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
+        self.gridLayout_input.addWidget(self.create_voronoi_parameters(), 2, 2)
+        self.voronoi_subWidget.hide()        
 
     def closeEvent(self, event):
         """closeEvent is used to reset the widgets to their default settings.
@@ -87,13 +90,20 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
                     return
                 parameters=[
                     self.comboBox_layer_QGIS.currentText(),
-                    self.comboBox_transportation_mode.currentText(),
-                    self.lineEdit_time_interval.text(),
-                    self.spinBox_smoothing_factor.value(),
-                    self.comboBox_location_type.currentText(),
-                    self.lineEdit_api_key.text()]
+                    self.lineEdit_api_key.text(),
+                    self.comboBox_processing_mode.currentText(),
+                    {
+                    'transportation':self.comboBox_transportation_mode.currentText(),
+                    'interval_minutes':[int(x) for x in self.lineEdit_time_interval.text().split(",")],
+                    'smoothing': self.spinBox_smoothing_factor.value(),
+                    'location_type':self.comboBox_location_type.currentText(),
+                    'voronoi_extend_layer':self.voronoi_comboBoxLayer.itemData(self.voronoi_comboBoxLayer.currentIndex()) if self.voronoi_comboBoxLayer.isVisible() else self.voronoi_comboBoxClipType.currentText() if self.voronoi_subWidget.isVisible() else None
+                    }]
                 self.list_layers.append(self.comboBox_layer_QGIS.itemData(self.comboBox_layer_QGIS.currentIndex()))
-                self.comboBox_layer_QGIS.setCurrentIndex(-1) #On retourne à la sélection vid
+                self.comboBox_layer_QGIS.setCurrentIndex(-1) 
+                self.comboBox_processing_mode.setCurrentIndex(-1)
+                self.voronoi_comboBoxClipType.setCurrentIndex(-1)
+                self.voronoi_comboBoxLayer.setCurrentIndex(-1)
                 numRows = self.tableWidget.rowCount()
                 self.tableWidget.insertRow(numRows) # Create a empty row at bottom of table
                 for i in range(len(parameters)): #populate the row
@@ -113,25 +123,46 @@ class ui_mg_isochrone(QtWidgets.QDialog, load_ui('Isochrone_ORS_Tools_API.ui').F
         self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
         self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
 
-    def getQTableWidgetData(self,column_number:int=6):
+    def getQTableWidgetData(self,column_number:int=4):
         """getQTableWidgetData returns the data from the QTableWidget"""
         data = []
         for row in range(self.tableWidget.rowCount()):
             data.append([self.tableWidget.item(row, col).text() for col in range(self.tableWidget.columnCount())])
         return [data[i:i+column_number] for i in range(0,len(data),column_number)][0]
+    
+    def create_voronoi_parameters(self):
+        """Creates a QtWidget containing the Voronoi processing mode parameters."""
+        self.voronoi_subWidget = QtWidgets.QWidget()
+        self.voronoi_subLayout = QtWidgets.QGridLayout()
+        self.voronoi_subWidget.setLayout(self.voronoi_subLayout)
+        self.voronoi_combobox_label=QtWidgets.QLabel("Clip the Voronoï's cells:")
+        self.voronoi_combobox_Polygon_label=QtWidgets.QLabel("Select a polygon layer to clip the cells from")
+        self.voronoi_subLayout.addWidget(self.voronoi_combobox_label, 0, 0)
+        self.voronoi_subLayout.addWidget(self.voronoi_combobox_Polygon_label, 0, 1)
+        self.voronoi_comboBoxClipType = QtWidgets.QComboBox()
+        self.voronoi_comboBoxLayer = QtWidgets.QComboBox()
+        self.voronoi_subLayout.addWidget(self.voronoi_comboBoxClipType, 1, 0)
+        self.voronoi_subLayout.addWidget(self.voronoi_comboBoxLayer, 1, 1)
+        self.voronoi_comboBoxLayer.hide()
+        self.voronoi_combobox_Polygon_label.hide()
+        self.voronoi_comboBoxClipType.currentIndexChanged.connect(self.update_voronoi_clip_layer_parameters)
+        return self.voronoi_subWidget
 
-    def prepData(self, data: list, index:int):
-        """prepData transforms the data from the QTableWidget and self.list_layers
-        into a format that can be used by Isochrone_ORS_Tools_GeopandasV3.py"""
-        layer_selected=QgsProject.instance().mapLayer(self.list_layers[index])
-        layer=prepVector.layer_to_geodataframe(layer_selected)
-        layer_name=layer_selected.name()
-        transportation=data[1]
-        interval_minute=[int(x) for x in data[2].split(",")]
-        smoothing_factor=int(data[3])
-        location_type=data[4]
-        api_key=data[5]
-        return layer,interval_minute,api_key,smoothing_factor,location_type,transportation,layer_name
+    def update_voronoi_parameters(self, index):
+        """Update the QGridLayout to show or hide the Voronoi processing mode parameters."""
+        if index == 2:
+            self.voronoi_subWidget.show()
+        else:
+            self.voronoi_subWidget.hide()
+
+    def update_voronoi_clip_layer_parameters(self, index):
+        """Update the QGridLayout to show or hide the Voronoi processing mode parameters."""
+        if index == 4:
+            self.voronoi_comboBoxLayer.show()
+            self.voronoi_combobox_Polygon_label.show()
+        else:
+            self.voronoi_comboBoxLayer.hide()
+            self.voronoi_combobox_Polygon_label.hide()
 
 class ui_run_isochrone():
     """ui_run_isochrone is used to run Isochrones_ORS_Tools_GeopandasV3's UI.
@@ -145,18 +176,29 @@ class ui_run_isochrone():
         for layer in QgsProject.instance().mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                 self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
+        self.dlg.voronoi_comboBoxClipType.clear()
+        self.dlg.voronoi_comboBoxClipType.addItems(['None','Bounding box','Convex hull', 'Alpha hull', 'From a Polygon'])
+        self.dlg.voronoi_comboBoxLayer.clear()
+        for layer in QgsProject.instance().mapLayers().values():
+                    if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                        self.dlg.voronoi_comboBoxLayer.addItem(layer.name(), layer.id())
         ui = self.dlg.exec()
 
         if ui == QtWidgets.QDialog.Accepted:
             try:
-                if self.dlg.tableWidget.rowCount()==0:
-                    QtWidgets.QMessageBox.warning(self.dlg, "Warning", "Please add at least one input.")
-                    return
-                else:
-                    for index,data in enumerate(self.dlg.getQTableWidgetData()):
-                        parameters=list(self.dlg.prepData(data,index))
-                        isochrone_output=Isochrone_ORS_V3_QGIS(*parameters[:-1])
-                        QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone_output.result, "Isochrone_{}".format(parameters[-1]), "ogr"))
+                for index,data in enumerate(self.dlg.getQTableWidgetData()):
+                    layer_selected=QgsProject.instance().mapLayer(self.dlg.list_layers[index])
+                    layer=prepVector.layer_to_geodataframe(layer_selected)
+                    layer.to_crs('EPSG:4326', inplace =True)
+                    parameters=eval(data[3])
+                    parameters['smoothing'] = int(parameters['smoothing'])
+                    parameters['interval_minutes'] = list(map(int,parameters['interval_minutes']))
+                    if parameters['voronoi_extend_layer'] not in ['None','Bounding box','Convex hull', 'Alpha hull'] and parameters['voronoi_extend_layer'] is not None:
+                        parameters['voronoi_extend_layer']=prepVector.layer_to_geodataframe(QgsProject.instance().mapLayer(parameters['voronoi_extend_layer'])).to_crs("EPSG:3857") #web mercator
+                        parameters['voronoi_extend_layer']=parameters['voronoi_extend_layer'].unary_union #union_all() if geopandas >= 1.0.0
+                    processingMode = 0 if data[2] == 'Merge isochrones by cost type' else 1 if data[2] == 'Separate each isochron' else 2
+                    isochrone_output=Isochrone_API_ORS(layer,data[1],processing_mode=processingMode, **parameters)
+                    QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone_output.result, "Isochrone_ORS_{}".format(layer_selected.name()), "ogr"))
             except RuntimeError as e:
                 raise e
             except ValueError as e:

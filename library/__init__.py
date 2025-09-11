@@ -9,7 +9,7 @@
 """
 __version__ = '1.0.0'
 __all__ = ['mapscreenshot',
-           'Isochrone_ORS_V3_QGIS',
+           'Isochrone_API_ORS',
            'AddressSearch',
            'Isochrone_API_IGN', 
            'apiSireneRequest', 
@@ -21,7 +21,7 @@ __all__ = ['mapscreenshot',
            'usefullTools']
 
 from .mapscreenshot import mapscreenshot
-from .Isochrone_ORS_Tools_GeopandasV3 import Isochrone_ORS_V3_QGIS
+from .Isochrone_ORS_Tools_GeopandasV3 import Isochrone_API_ORS
 from .Isochrone_IGN_API import Isochrone_API_IGN
 from .address2point import AddressSearch
 from .Request_API_SIRENE import apiSireneRequest, apiSireneUtils, siretInPolygonFilteredByCoordinates, siretInPolygonFilteredByAddresses

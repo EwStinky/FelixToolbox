@@ -36,7 +36,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_9">
    <item>
-    <layout class="QGridLayout" name="gridLayout_9">
+    <layout class="QGridLayout" name="gridLayout_input">
      <item row="0" column="0">
       <widget class="QLabel" name="label_layer_QGIS">
        <property name="text">
@@ -49,6 +49,12 @@
      </item>
      <item row="1" column="1">
       <widget class="QLineEdit" name="lineEdit_api_key">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="maximumSize">
         <size>
          <width>16777215</width>
@@ -98,9 +104,41 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_API_key">
        <property name="text">
         <string>ORS Tools API Key</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QComboBox" name="comboBox_processing_mode">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <item>
+        <property name="text">
+         <string>Merge isochrones by cost type</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Separate each isochron</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Merge isochrones by cost type and intersect them by Voronoï polygons</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_processing_mode">
+       <property name="text">
+        <string>Processing mode</string>
        </property>
       </widget>
      </item>
@@ -119,7 +157,7 @@
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
      <item row="0" column="1">
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="label_time_interval">
        <property name="text">
         <string>Time interval in minute</string>
        </property>
@@ -363,32 +401,22 @@
      </attribute>
      <column>
       <property name="text">
-       <string>Vecteurs</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Transportation</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Time Interval</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Smoothing</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Location type</string>
+       <string>Vector layer</string>
       </property>
      </column>
      <column>
       <property name="text">
        <string>API Key</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Processing mode</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Parameters</string>
       </property>
      </column>
     </widget>
@@ -424,8 +452,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>9</x>
-     <y>568</y>
+     <x>20</x>
+     <y>588</y>
     </hint>
     <hint type="destinationlabel">
      <x>820</x>

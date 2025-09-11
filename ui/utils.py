@@ -3,9 +3,9 @@
     This module containes the class and functions usefull the UI management.
     So far it is made for Qt UIs.
                              -------------------
-        begin                : 2025-02-19
+        start                : 2025-02-19
         email                : felix.gardot@gmail.com
-        github               : https://github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 import os

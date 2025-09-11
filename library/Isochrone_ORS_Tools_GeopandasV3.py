@@ -10,112 +10,47 @@
     api_ors_key: string representing the API key for the ORS Tools services
     input_coordinates: a list of a list of coordinates (X,Y) of each point needed to get an isochrone, 
                              -------------------
-        begin                : 2025-01-29
+        start                : 2025-01-29
         email                : felix.gardot@gmail.com
-        github               : https://github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 import pandas as pd
 import geopandas as gpd
 import requests
+import libpysal
+from .utilsLibrary import decorators
 
-
-class Isochrone_ORS_V3_QGIS:
-
-    def __init__(self,input_layer, interval_minutes: list, api_ors_key: str, smoothing:int=0, location_type:str='destination',transportation:str='driving-car'):
+class Isochrone_API_ORS:
+    def __init__(self,input_layer:gpd.GeoDataFrame, api_ors_key:str, interval_minutes:list, processing_mode:int=0, smoothing:int=0, location_type:str='destination',transportation:str='driving-car', voronoi_extend_layer=None):
         """
         The function initializes an object with a selected vector layer, a list of interval minutes, and
         an API key for OpenRouteService.
         
-        * input_layer: layer of points that will be used to calculate isochrones
-        * interval_minutes: A list that contains the intervals in minutes that you want to use to calculate isochrones
-        * api_ors_key:  A string that represents the API key for the OpenRouteService (ORS) API.
-        * smoothing: integer used for the smoothing factor in the isochrone API request (0 - 100) 
-        * location_type: string used for the smoothing factor in the isochrone API request ('start' or 'destination')
+        * input_layer (gpd.GeoDataFrame): GeoDataFrame representing a layer of points that will be used to calculate isochrones
+        * interval_minutes (list[int]): A list that contains the intervals in minutes that you want to use to calculate isochrones
+        * api_ors_key (str):  A string that represents the API key for the OpenRouteService (ORS) API.
+        * smoothing (int): integer used for the smoothing factor in the isochrone API request (0 - 100) 
+        * location_type (str): string used for the smoothing factor in the isochrone API request ('start' or 'destination')
+        * processingMode (int): Processing mode chosen by the user that decided the output type coming from the Isochrone_API_IGN.main().
+        * voronoi_extend_layer (str | tuple): Selected input for the clipping of the voronoi's cells if the voronoi processing mode has been selected.
         """
-        if self.verif_list_int(interval_minutes):
-            self.interval_minutes = self.time_range_minutes_to_seconds(interval_minutes)
-        else:
-            raise ValueError("The list of time intervals must contain only integers.")
-        if isinstance(input_layer, gpd.GeoDataFrame):
-            self.input_layer = input_layer.to_crs(epsg=4326) if input_layer.crs!='epsg:4326' else input_layer
-        else:
-            try:
-                self.input_layer = self.input_to_gdf(input_layer)
-                if self.input_layer.empty:
-                    raise ValueError("The input layer is empty after conversion to GeoDataFrame.")
-            except Exception as err:
-                raise ValueError(f"Failed to convert input_layer to GeoDataFrame: {err}")
-            
+        self.input_layer = input_layer.to_crs(epsg=4326) if input_layer.crs!='epsg:4326' else input_layer
+        self.api_ors_key = str(api_ors_key)
+        self.interval_minutes = self.time_range_minutes_to_seconds(interval_minutes)
+        self.processing_mode=processing_mode
         self.smoothing = smoothing
         self.location_type = location_type
         self.transportation = transportation
-
-        if not isinstance(api_ors_key, str) or not api_ors_key.strip():
-            raise ValueError("The API key must be a non-empty string.")
-        self.api_ors_key = str(api_ors_key)
+        self.voronoi_extend_layer = voronoi_extend_layer
         try:
             self.result = self.main().to_json()
         except Exception as err:
             raise RuntimeError(f"An error occurred while generating the result: {err}")
 
     @staticmethod
-    def input_to_gdf(input_layer):
-        """
-        'input_to_gdf' get the layer like a ESRI shapefile, a GeoJSON etc.. and translate it into a GeoDataFrame (WGS84)
-        """
-        gdf = gpd.read_file(input_layer)
-        return gdf.to_crs('epsg:4326', inplace=True) if gdf.crs != 'epsg:4326' else gdf
-
-    @staticmethod
-    def verif_list_int(interval_minutes: list):
-        """
-        The function `verif_list_int` checks if all elements in the list `interval_minutes` are integers.
-        Returns True if all elements in the `interval_minutes` list are of type `int`
-        """
-        return all(isinstance(i, int) for i in interval_minutes)
-
-    @staticmethod
-    def  verif_list_float(input_coordinates: list):
-        """
-        The function `verif_list_int` checks if all the lists in the list `input_coordinates` contain 2 float elements.
-        Returns True if all conditons are met.
-        """
-        return all(
-            [all(isinstance(i[0], float) for i in input_coordinates),
-             all(isinstance(i[1], float) for i in input_coordinates), 
-             all(len(i)==2 for i in input_coordinates)])
-
-    @staticmethod    
-    def time_range_minutes_to_seconds(interval_minutes: list):
-        """
-        The function `time_range_minutes_to_seconds` converts the time intervals in minutes to seconds in new self variables.
-
-        interval_seconds: list of time intervals in seconds
-        """
-        return [i*60 for i in interval_minutes]
-
-    @staticmethod
-    def split_coordinates_into_sublists(list_to_split: list):
-        """
-        This Python function splits a list of coordinates into sublists of 5 elements each if the original
-        list has more than 5 elements.
-
-        returns:
-        split= a list of the different sublists that also contains lists -> list[sublist[lists]]
-        """
-        return [list_to_split[i:i+5] for i in range(0,len(list_to_split),5)]
-
-    @staticmethod
-    def get_points_coordinates(gdf,geometry_column: str):
-        """
-        The function `get_points_coordinates` retrieves the coordinates of the points in a gdf layer.
-        and returns a list of lists representing the coordinates (X,Y) of each point in the layer.
-        """
-        return [[f.x,f.y] for f in gdf['{}'.format(geometry_column)]]
-
-    @staticmethod
-    def request_ORS_isochrone_api(input_coordinates: list[list[float,float]],interval_seconds: list[int],api_ors_key: str,smoothing=0, location_type='destination', transportation:str='driving-car') -> dict:
+    @decorators.retryRequest(min_wait=1, wait_multiplier=2, max_retries=3)
+    def request_ORS_isochrone_api(input_coordinates: list[list[float,float]], interval_seconds: list[int],api_ors_key: str,smoothing:int=0, location_type:str='destination', transportation:str='driving-car', ) -> dict:
         """
         The function `request_ORS_isochrone_api` prepares the body parameters for the isochrone API request from ORS Tools services.
         It then sends a POST request to the ORS Tools isochrone API and returns the response from the API as a QgsVectorLayer.
@@ -151,13 +86,60 @@ class Isochrone_ORS_V3_QGIS:
         return call.json()
 
     @staticmethod
-    def api_output_to_gdf(json):
+    def verif_list_int(interval_minutes: list):
+        """
+        The function `verif_list_int` checks if all elements in the list `interval_minutes` are integers.
+        Returns True if all elements in the `interval_minutes` list are of type `int`
+        """
+        return all(isinstance(i, int) for i in interval_minutes)
+
+    @staticmethod
+    def  verif_list_float(input_coordinates: list):
+        """
+        The function `verif_list_int` checks if all the lists in the list `input_coordinates` contain 2 float elements.
+        Returns True if all conditons are met.
+        """
+        return all(
+            [all(isinstance(i[0], float) for i in input_coordinates),
+             all(isinstance(i[1], float) for i in input_coordinates), 
+             all(len(i)==2 for i in input_coordinates)])
+
+    @staticmethod    
+    def time_range_minutes_to_seconds(interval_minutes: list) -> list:
+        """
+        The function `time_range_minutes_to_seconds` converts the time intervals in minutes to seconds in new self variables.
+
+        interval_seconds: list of time intervals in seconds
+        """
+        return [i*60 for i in interval_minutes]
+
+    @staticmethod
+    def split_coordinates_into_sublists(list_to_split: list) -> list:
+        """
+        This Python function splits a list of coordinates into sublists of 5 elements each if the original
+        list has more than 5 elements.
+
+        returns:
+        split= a list of the different sublists that also contains lists -> list[sublist[lists]]
+        """
+        return [list_to_split[i:i+5] for i in range(0,len(list_to_split),5)]
+
+    @staticmethod
+    def get_points_coordinates(gdf: gpd.GeoDataFrame, geometry_column: str) -> list:
+        """
+        The function `get_points_coordinates` retrieves the coordinates of the points in a gdf layer.
+        and returns a list of lists representing the coordinates (X,Y) of each point in the layer.
+        """
+        return [[f.x,f.y] for f in gdf['{}'.format(geometry_column)]]
+
+    @staticmethod
+    def api_output_to_gdf(json) -> gpd.GeoDataFrame:
         features = json['features']
         gdf = gpd.GeoDataFrame.from_features(features)
         return gdf.set_crs(epsg=4326, inplace=True)
     
     @staticmethod
-    def post_api_processing(list_gdf:list, interval_seconds:list):
+    def post_api_processing(list_gdf:list, interval_seconds:list) -> gpd.GeoDataFrame:
         """geojson2gdf runs a bunch of processing on the isochrones output from the ORS API services.
         It dissolves the isochrones per time value and then calculates the difference between each layer 
         (layer x+1 - layer x).
@@ -182,8 +164,28 @@ class Isochrone_ORS_V3_QGIS:
         gdf.drop(columns=['center','area','group_index'], inplace=True)
         gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['value']/60, row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
         return gdf
+    
+    @staticmethod
+    def post_api_voronoi_processing(list_gdf:list, interval_seconds:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:tuple|str=None) -> gpd.GeoDataFrame:
+        """Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points."""
+        dissolved_gdf=[list_gdf[list_gdf['value'] == y].dissolve() for y in interval_seconds] #dissolve the layer per time value
+        difference = []
+        difference.append(dissolved_gdf[0])  #Append the first layer without processing
+        for u in range(len(interval_seconds) - 1): #Loop to get the difference between each layer
+            output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
+            difference.append(output)
+        gdf = pd.concat(difference)
+        gdf.drop(columns=['center','area','group_index'], inplace=True)
+        gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['value']/60, row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
+        gdf.to_crs(epsg=3857, inplace=True) #Need a projected CRS to work, right now I'm using web mercator for a global usage but I'm not sure which one to use!
+        gdf.set_geometry('geometry', inplace=True)
+        point_layer.to_crs("EPSG:3857",inplace=True)
+        voronoi_polygon=libpysal.cg.voronoi_frames(geometry =point_layer, clip=voronoi_extend_layer, as_gdf=True)
+        gdf_voronoi = gpd.overlay(gdf, voronoi_polygon[0], how='intersection')
+        gdf_voronoi.to_crs(4326,inplace=True)
+        return gdf_voronoi
 
-    def main(self):
+    def main(self) -> gpd.GeoDataFrame:
         """
         The function `main` is the main function that runs the entire isochrone creation process.
         It calls the necessary functions in the correct order to generate isochrones from a selected point layer.
@@ -192,7 +194,12 @@ class Isochrone_ORS_V3_QGIS:
         try:
             for y in self.split_coordinates_into_sublists(self.get_points_coordinates(self.input_layer,'geometry')):
                 outputJson.append(self.request_ORS_isochrone_api(y,self.interval_minutes,self.api_ors_key,self.smoothing,self.location_type,self.transportation))
-            return self.post_api_processing(pd.concat([self.api_output_to_gdf(y) for y in outputJson]),self.interval_minutes)
+            if self.processing_mode==0:
+                return self.post_api_processing(pd.concat([self.api_output_to_gdf(y) for y in outputJson]),self.interval_minutes)
+            elif self.processing_mode==1:
+                return pd.concat([self.api_output_to_gdf(y) for y in outputJson])
+            else:
+                return self.post_api_voronoi_processing(gpd.GeoDataFrame(pd.concat([self.api_output_to_gdf(y) for y in outputJson])),self.interval_minutes, self.input_layer,self.voronoi_extend_layer)
             
         except requests.exceptions.HTTPError as http_err:
             raise RuntimeError("HTTP error occurred: {}".format(http_err))

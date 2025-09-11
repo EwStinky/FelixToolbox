@@ -36,11 +36,21 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_9">
    <item>
-    <layout class="QGridLayout" name="gridLayout_9">
+    <layout class="QGridLayout" name="gridLayout_input">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_layer_QGIS">
+       <property name="text">
+        <string>Vector layer</string>
+       </property>
+       <property name="buddy">
+        <cstring>comboBox_layer_QGIS</cstring>
+       </property>
+      </widget>
+     </item>
      <item row="1" column="0">
       <widget class="QComboBox" name="comboBox_layer_QGIS">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -71,28 +81,31 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_layer_QGIS">
-       <property name="text">
-        <string>Vector layer</string>
-       </property>
-       <property name="buddy">
-        <cstring>comboBox_layer_QGIS</cstring>
-       </property>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="comboBox_processingMode">
+       <item>
+        <property name="text">
+         <string>Merge isochrones by cost type</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Separate each isochron</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Merge isochrones by cost type and intersect them by Voronoï polygons</string>
+        </property>
+       </item>
       </widget>
      </item>
-     <item row="1" column="1">
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_processingMode">
+       <property name="text">
+        <string>Processing mode</string>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
+      </widget>
      </item>
     </layout>
    </item>
@@ -104,24 +117,10 @@
     </widget>
    </item>
    <item>
-    <layout class="QGridLayout" name="gridLayout">
+    <layout class="QGridLayout" name="gridLayout_isochrone_parameters">
      <property name="sizeConstraint">
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_CostValue">
-       <property name="text">
-        <string>Cost value</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="2">
-      <widget class="QLabel" name="label_fonction_exterieur">
-       <property name="text">
-        <string>Location type</string>
-       </property>
-      </widget>
-     </item>
      <item row="2" column="2">
       <widget class="QComboBox" name="comboBox_resource">
        <item>
@@ -134,61 +133,6 @@
          <string>bdtopo-pgr</string>
         </property>
        </item>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLabel" name="label_CostType">
-       <property name="text">
-        <string>Cost type</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_resource">
-       <property name="text">
-        <string>Resource (be aware that each resource works differently)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_profile">
-       <property name="text">
-        <string>Displacement mode</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1">
-      <widget class="QComboBox" name="comboBox_Unit">
-       <item>
-        <property name="text">
-         <string>minute</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>second</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>hour</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>standard</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLabel" name="label_Distance_exterieur">
-       <property name="text">
-        <string>Cost unit</string>
-       </property>
-       <property name="wordWrap">
-        <bool>true</bool>
-       </property>
       </widget>
      </item>
      <item row="4" column="2">
@@ -225,19 +169,13 @@
        </item>
       </widget>
      </item>
-     <item row="2" column="0">
-      <widget class="QLineEdit" name="lineEdit_CostValue">
-       <property name="enabled">
+     <item row="3" column="1">
+      <widget class="QLabel" name="label_Distance_exterieur">
+       <property name="text">
+        <string>Cost unit</string>
+       </property>
+       <property name="wordWrap">
         <bool>true</bool>
-       </property>
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="placeholderText">
-        <string>5, 10 ,15, 20 ...</string>
        </property>
       </widget>
      </item>
@@ -253,6 +191,81 @@
          <string>pedestrian</string>
         </property>
        </item>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_resource">
+       <property name="text">
+        <string>Resource (be aware that each resource works differently)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_CostValue">
+       <property name="text">
+        <string>Cost value</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="label_CostType">
+       <property name="text">
+        <string>Cost type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_profile">
+       <property name="text">
+        <string>Displacement mode</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="comboBox_Unit">
+       <item>
+        <property name="text">
+         <string>minute</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>second</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>hour</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>standard</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLabel" name="label_fonction_exterieur">
+       <property name="text">
+        <string>Location type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLineEdit" name="lineEdit_CostValue">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="placeholderText">
+        <string>5, 10 ,15, 20 ...</string>
+       </property>
       </widget>
      </item>
     </layout>
@@ -279,7 +292,7 @@
     </widget>
    </item>
    <item>
-    <layout class="QGridLayout" name="gridLayout_6">
+    <layout class="QGridLayout" name="gridLayout_QTableWidget_buttons">
      <item row="0" column="1">
       <widget class="QPushButton" name="pushButton_Ajouter_table">
        <property name="sizePolicy">
@@ -398,13 +411,15 @@
      </column>
      <column>
       <property name="text">
+       <string>Processing mode</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
        <string>Parameters</string>
       </property>
      </column>
     </widget>
-   </item>
-   <item>
-    <layout class="QGridLayout" name="gridLayout_7"/>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="button_box">
