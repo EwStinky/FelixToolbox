@@ -4,9 +4,9 @@
     and returns a geometry point in the form of a GeoDataFrame object.
     The GeoDataFrame contains the attributes returned by the API selected.
                              -------------------
-        begin                : 2025-03-26
+        start                : 2025-03-26
         email                : felix.gardot@gmail.com
-        github               : https://github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 import geopandas as gpd
@@ -25,27 +25,15 @@ class AddressSearch:
     Please respect these specifications
     """
 
-    def __init__(self, api:str, parameters=[]):
+    def __init__(self, api:str, parameters:dict={}):
+        """See search_address_API_BAN() or search_address_nominatim_API() for the parameters"""
         try:
             if api=='BAN':
-                self.result = AddressSearch.search_address_API_BAN(*parameters)
+                self.result = AddressSearch.search_address_API_BAN(**parameters)
             elif api=='Nominatim':
-                self.result = AddressSearch.search_address_nominatim_API(*parameters)
-            else:
-                raise ValueError("Invalid API choice. Choose 'BAN' or 'Nominatim'.")
-        except requests.exceptions.HTTPError as http_err:
-            raise RuntimeError("HTTP error occurred: {}".format(http_err))
-        except requests.exceptions.ConnectionError as conn_err:
-            raise RuntimeError("Connection error occurred: {}".format(conn_err))
-        except requests.exceptions.Timeout as timeout_err:
-            raise RuntimeError("Timeout error occurred: {}".format(timeout_err))    
-        except requests.exceptions.RequestException as req_err:
-            raise RuntimeError("Request error occurred: {}".format(req_err))    
-        except ValueError as err:
-            raise ValueError(err) 
+                self.result = AddressSearch.search_address_nominatim_API(**parameters)  
         except Exception as err:
-            raise RuntimeError("An error occurred: {}".format(err))
-
+            raise err
     
     @staticmethod
     @decorators.retryRequest(min_wait=1,wait_multiplier=2,max_retries=5,exceptions=(RequestException))
@@ -76,11 +64,20 @@ class AddressSearch:
             'lat': lat,
             'lon': lon
         }
-        call = requests.get(url, params=payload)
-        call.raise_for_status()
-        return gpd.GeoDataFrame.from_features(call.json()["features"]).set_crs("EPSG:4326")
+        try:
+            call = requests.get(url, params=payload)
+            call.raise_for_status()
+            return gpd.GeoDataFrame.from_features(call.json()["features"]).set_crs("EPSG:4326")
+        except AttributeError as e:
+            if str(e)=="'DataFrame' object has no attribute 'geometry'":
+                raise ValueError(payload['q'])
+            else:
+                raise e
+        except Exception as error:
+            raise error
 
     @staticmethod
+    @decorators.retryRequest(min_wait=1,wait_multiplier=2,max_retries=5,exceptions=(RequestException))
     def search_address_nominatim_API(q:str ,limit:int =10, addressdetails:int =1, extratags:int =1, namedetails:int =1, dedupe:int =1, countrycodes: list =None, layer: list=None, featureType:str =None, exclude_place_ids:list =None, viewbox:str =None, bounded:int =0) -> gpd.GeoDataFrame:
         """Search for an address using the Nominatim API
         https://nominatim.org/release-docs/develop/api/Search/
@@ -122,6 +119,14 @@ class AddressSearch:
         url= 'https://nominatim.openstreetmap.org/search'
         headers = {'User-Agent': 'FelixToolbox/1.0'}
 
-        call = requests.get(url, headers=headers, params=payload)
-        call.raise_for_status()
-        return gpd.GeoDataFrame.from_features(call.json()["features"]).set_crs("EPSG:4326")
+        try:
+            call = requests.get(url, headers=headers, params=payload)
+            call.raise_for_status()
+            return gpd.GeoDataFrame.from_features(call.json()["features"]).set_crs("EPSG:4326")
+        except AttributeError as e:
+            if str(e)=="'DataFrame' object has no attribute 'geometry'":
+                raise ValueError(payload['q'])
+            else:
+                raise e
+        except Exception as error:
+            raise error

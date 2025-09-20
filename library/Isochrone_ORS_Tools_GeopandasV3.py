@@ -18,7 +18,9 @@
 import pandas as pd
 import geopandas as gpd
 import requests
-import libpysal
+from shapely.geometry import polygon
+from shapely.ops import voronoi_diagram
+from shapely.wkt import loads
 from .utilsLibrary import decorators
 
 class Isochrone_API_ORS:
@@ -166,24 +168,32 @@ class Isochrone_API_ORS:
         return gdf
     
     @staticmethod
-    def post_api_voronoi_processing(list_gdf:list, interval_seconds:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:tuple|str=None) -> gpd.GeoDataFrame:
+    def post_api_voronoi_processing(list_gdf:list, interval_seconds:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None) -> gpd.GeoDataFrame:
         """Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points."""
-        dissolved_gdf=[list_gdf[list_gdf['value'] == y].dissolve() for y in interval_seconds] #dissolve the layer per time value
-        difference = []
-        difference.append(dissolved_gdf[0])  #Append the first layer without processing
-        for u in range(len(interval_seconds) - 1): #Loop to get the difference between each layer
-            output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
-            difference.append(output)
-        gdf = pd.concat(difference)
-        gdf.drop(columns=['center','area','group_index'], inplace=True)
-        gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['value']/60, row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
-        gdf.to_crs(epsg=3857, inplace=True) #Need a projected CRS to work, right now I'm using web mercator for a global usage but I'm not sure which one to use!
-        gdf.set_geometry('geometry', inplace=True)
-        point_layer.to_crs("EPSG:3857",inplace=True)
-        voronoi_polygon=libpysal.cg.voronoi_frames(geometry =point_layer, clip=voronoi_extend_layer, as_gdf=True)
-        gdf_voronoi = gpd.overlay(gdf, voronoi_polygon[0], how='intersection')
-        gdf_voronoi.to_crs(4326,inplace=True)
-        return gdf_voronoi
+        try:
+            dissolved_gdf=[list_gdf[list_gdf['value'] == y].dissolve() for y in interval_seconds] #dissolve the layer per time value
+            difference = []
+            difference.append(dissolved_gdf[0])  #Append the first layer without processing
+            for u in range(len(interval_seconds) - 1): #Loop to get the difference between each layer
+                output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
+                difference.append(output)
+            gdf = pd.concat(difference)
+            gdf.drop(columns=['center','area','group_index'], inplace=True)
+            gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['value']/60, row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
+            gdf.to_crs(epsg=4326, inplace=True) #Need a projected CRS to work, right now I'm using web mercator for a global usage but I'm not sure which one to use!
+            gdf.set_geometry('geometry', inplace=True)
+            point_layer.to_crs("EPSG:4326",inplace=True)
+            voronoi_polygon = gpd.GeoDataFrame(
+                geometry=[geom for geom in list(voronoi_diagram(point_layer.unary_union, envelope=loads(str(voronoi_extend_layer)) if voronoi_extend_layer else None).geoms)], #union_all() if geopandas >= 1.0.0
+                crs="EPSG:4326"
+                )
+            voronoi_polygon['id_voronoi'] = range(len(voronoi_polygon))
+            voronoi_polygon_cliped=gpd.overlay(voronoi_polygon,  gpd.GeoDataFrame(geometry=[voronoi_extend_layer], crs="EPSG:4326"), how='intersection') if voronoi_extend_layer else voronoi_polygon
+            gdf_voronoi = gpd.overlay(gdf, voronoi_polygon_cliped, how='intersection')
+            gdf_voronoi.to_crs(4326,inplace=True)
+            return gdf_voronoi
+        except Exception as err:
+            raise err
 
     def main(self) -> gpd.GeoDataFrame:
         """
@@ -200,16 +210,5 @@ class Isochrone_API_ORS:
                 return pd.concat([self.api_output_to_gdf(y) for y in outputJson])
             else:
                 return self.post_api_voronoi_processing(gpd.GeoDataFrame(pd.concat([self.api_output_to_gdf(y) for y in outputJson])),self.interval_minutes, self.input_layer,self.voronoi_extend_layer)
-            
-        except requests.exceptions.HTTPError as http_err:
-            raise RuntimeError("HTTP error occurred: {}".format(http_err))
-        except requests.exceptions.ConnectionError as conn_err:
-            raise RuntimeError("Connection error occurred: {}".format(conn_err))
-        except requests.exceptions.Timeout as timeout_err:
-            raise RuntimeError("Timeout error occurred: {}".format(timeout_err))    
-        except requests.exceptions.RequestException as req_err:
-            raise RuntimeError("Request error occurred: {}".format(req_err))    
-        except ValueError as json_err:
-            raise ValueError("JSON error occurred: {}".format(json_err)) 
         except Exception as err:
-            raise RuntimeError("An error occurred: {}".format(err))
+            raise err

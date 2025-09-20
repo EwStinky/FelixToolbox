@@ -164,7 +164,7 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
 
     def update_voronoi_clip_layer_parameters(self, index):
         """Update the QGridLayout to show or hide the Voronoi processing mode parameters."""
-        if index == 4:
+        if index == 3:
             self.voronoi_comboBoxLayer.show()
             self.voronoi_combobox_Polygon_label.show()
         else:
@@ -185,7 +185,7 @@ class ui_run_isochrone_ign():
                     if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                         self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
         self.dlg.voronoi_comboBoxClipType.clear()
-        self.dlg.voronoi_comboBoxClipType.addItems(['None','Bounding box','Convex hull', 'Alpha hull', 'From a Polygon'])
+        self.dlg.voronoi_comboBoxClipType.addItems(['None','Bounding box','Convex hull', 'From a Polygon'])
         self.dlg.voronoi_comboBoxLayer.clear()
         for layer in QgsProject.instance().mapLayers().values():
                     if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PolygonGeometry:
@@ -200,15 +200,15 @@ class ui_run_isochrone_ign():
                     layer=prepVector.layer_to_geodataframe(layer_selected)
                     layer.to_crs('EPSG:4326', inplace=True)
                     parameters=eval(data[3])
-                    if parameters['voronoi_extend_layer'] not in ['None','Bounding box','Convex hull', 'Alpha hull'] and parameters['voronoi_extend_layer'] is not None:
-                        parameters['voronoi_extend_layer']=prepVector.layer_to_geodataframe(QgsProject.instance().mapLayer(parameters['voronoi_extend_layer'])).to_crs("EPSG:3857") #web mercator
-                        parameters['voronoi_extend_layer']=parameters['voronoi_extend_layer'].unary_union #union_all() if geopandas >= 1.0.0
+                    if parameters['voronoi_extend_layer']:
+                        if parameters['voronoi_extend_layer']=='Bounding box': parameters['voronoi_extend_layer']=layer.unary_union.envelope
+                        if parameters['voronoi_extend_layer']=='Convex hull': parameters['voronoi_extend_layer']=layer.unary_union.convex_hull
+                        if parameters['voronoi_extend_layer']=='None': parameters['voronoi_extend_layer']=None
+                        if parameters['voronoi_extend_layer'] not in ['None','Bounding box','Convex hull']:
+                            parameters['voronoi_extend_layer']=prepVector.layer_to_geodataframe(QgsProject.instance().mapLayer(parameters['voronoi_extend_layer'])).to_crs("EPSG:4326")
+                            parameters['voronoi_extend_layer']=parameters['voronoi_extend_layer'].unary_union #union_all() if geopandas >= 1.0.0
                     processingMode = 0 if data[2] == 'Merge isochrones by cost type' else 1 if data[2] == 'Separate each isochron' else 2
                     isochrone=Isochrone_API_IGN(layer,list(map(int,data[1].split(','))),processingMode,**parameters)
                     QgsProject.instance().addMapLayer(QgsVectorLayer(isochrone.output, "Isochrone_IGN_{}".format(layer_selected.name()), "ogr"))
-            except RuntimeError as e:
-                raise e
-            except ValueError as e:
-                raise e
             except Exception as e:
                 raise e

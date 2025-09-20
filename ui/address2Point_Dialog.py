@@ -5,9 +5,9 @@
     for the management of the UI and data preparation. 
     And another class 'ui_run_address2point' to run the script through the UI. 
                              -------------------
-        begin                : 2025-03-17
+        start                : 2025-03-17
         email                : felix.gardot@gmail.com
-        github               : https://github.com/EwStinky
+        github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
 from .utils import load_ui, prepVector
@@ -18,7 +18,8 @@ import pandas as pd
 import geopandas as gpd
 
 from qgis.PyQt import QtWidgets
-from qgis.core import QgsProject, QgsMapLayerType, QgsWkbTypes
+from qgis.PyQt.QtGui import QIntValidator
+from qgis.core import QgsProject
 from qgis.core import QgsVectorLayer
 
 class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CLASS):
@@ -41,6 +42,12 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
         self.pushButton_Effacer_ligne_table_Tab1.clicked.connect(self.removeRwoQTableWidget)
         self.pushButton_csv_file_load_Tab2.clicked.connect(self.load_csv)
         self.tabWidget.currentChanged.connect(self.tabChanged)
+        self.comboBox_2_csv_encoding_Tab2.currentIndexChanged.connect(self.update_encoding_parameter)
+        self.onlyInt = QIntValidator()
+        self.lineEdit_cityCodes_BAN_Tab1.setValidator(self.onlyInt)
+        self.lineEdit_postCode_BAN_Tab1.setValidator(self.onlyInt)
+        self.label_encoding_perso_csv_Tab2.hide()
+        self.lineEdit_encoding_perso_csv_Tab2.hide()   
 
     def tabChanged(self):
         if self.tabWidget.currentIndex()==0:
@@ -60,48 +67,25 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
         """
         #Nominatim API
         if self.stackedWidget_Tab1.currentIndex()==0: 
-            if self.lineEdit_AddressInput_Nominatim_Tab1.text() == '':
-                try:
-                    CostValue=list(map(int,self.lineEdit_AddressInput_Nominatim_Tab1.text().split(',')))
-                except Exception:
-                    self.lineEdit_AddressInput_Nominatim_Tab1.setStyleSheet("""
-                        QLineEdit {
-                            color: red; /* Text color */
-                            border: 1px solid red; /* Hollow red border */
-                            border-radius: 2px; 
-                            background-color: white; /* Optional: ensure background is not red */
-                        }""")
-                    return
+            if self.lineEdit_AddressInput_Nominatim_Tab1.text() == '' or self.lineEdit_AddressInput_Nominatim_Tab1.text().isspace():
+                self.lineEdit_AddressInput_Nominatim_Tab1.setStyleSheet("""
+                    QLineEdit {
+                        color: red; /* Text color */
+                        border: 1px solid red; /* Hollow red border */
+                        border-radius: 2px; 
+                        background-color: white; /* Optional: ensure background is not red */
+                    }""")
+                return
             else:
                 self.lineEdit_AddressInput_Nominatim_Tab1.setStyleSheet("""QLineEdit { }""")
-                parameters=[
-                    self.lineEdit_AddressInput_Nominatim_Tab1.text(),
-                    'Nominatim',
-                    {
-                        'limit': self.spinBox_Limit_Nominatim_Tab1.value(),
-                        'addressdetails': 1 if self.checkBox_AddressDetail_Nominatim_Tab1.isChecked() else 0,
-                        'extratags': 1 if self.checkBox_ExtraTag_Nominatim_Tab1.isChecked() else 0,
-                        'namedetails': 1 if self.checkBox_ExtraName_Nominatim_Tab1.isChecked() else 0 ,
-                        'dedupe': 1 if self.checkBox_dedupe_Nominatim_Tab1.isChecked() else 0,
-                        'countrycodes': self.lineEdit_countrycodes_Nominatim_Tab1.text() if self.lineEdit_countrycodes_Nominatim_Tab1.text() != '' else None,
-                        'layer': self.lineEdit_layer_Nominatim_Tab1.text() if self.lineEdit_layer_Nominatim_Tab1.text() !='' else None,
-                        'featureType': self.comboBox_featureType_Tab1_Nominatim.currentText() if self.comboBox_featureType_Tab1_Nominatim.currentText() !='' else None,
-                        'viewbox': self.lineEdit_viewBox_Nominatim_Tab1.text() if self.lineEdit_viewBox_Nominatim_Tab1.text() != '' else None
-                    }]
-                numRows = self.tableWidget_Tab1.rowCount()
-                self.tableWidget_Tab1.insertRow(numRows) # Create a empty row at bottom of table
-                for i in range(len(parameters)): #populate the row
-                    self.tableWidget_Tab1.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
-                self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
-                self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
-
-        #BAN API
-        elif self.stackedWidget_Tab1.currentIndex()==1: 
-            if self.lineEdit_AddressInput_BAN_Tab1.text() == '':
+            if self.lineEdit_viewBox_Nominatim_Tab1.text():
                 try:
-                    CostValue=list(map(int,self.lineEdit_AddressInput_BAN_Tab1.text().split(',')))
+                    self.lineEdit_viewBox_Nominatim_Tab1.setStyleSheet("""QLineEdit { }""")
+                    verif_attribute=list(map(float,self.lineEdit_viewBox_Nominatim_Tab1.text().split(',')))
+                    if len(verif_attribute)!=4:
+                        raise AttributeError('Not a Bbox')
                 except Exception:
-                    self.lineEdit_AddressInput_BAN_Tab1.setStyleSheet("""
+                    self.lineEdit_viewBox_Nominatim_Tab1.setStyleSheet("""
                         QLineEdit {
                             color: red; /* Text color */
                             border: 1px solid red; /* Hollow red border */
@@ -109,28 +93,73 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
                             background-color: white; /* Optional: ensure background is not red */
                         }""")
                     return
+            parameters=[
+                self.lineEdit_AddressInput_Nominatim_Tab1.text(),
+                'Nominatim',
+                {
+                    'limit': self.spinBox_Limit_Nominatim_Tab1.value(),
+                    'addressdetails': 1 if self.checkBox_AddressDetail_Nominatim_Tab1.isChecked() else 0,
+                    'extratags': 1 if self.checkBox_ExtraTag_Nominatim_Tab1.isChecked() else 0,
+                    'namedetails': 1 if self.checkBox_ExtraName_Nominatim_Tab1.isChecked() else 0 ,
+                    'dedupe': 1 if self.checkBox_dedupe_Nominatim_Tab1.isChecked() else 0,
+                    'countrycodes': self.lineEdit_countrycodes_Nominatim_Tab1.text() if self.lineEdit_countrycodes_Nominatim_Tab1.text() != '' else None,
+                    'layer': self.lineEdit_layer_Nominatim_Tab1.text() if self.lineEdit_layer_Nominatim_Tab1.text() !='' else None,
+                    'featureType': self.comboBox_featureType_Tab1_Nominatim.currentText() if self.comboBox_featureType_Tab1_Nominatim.currentText() !='' else None,
+                    'viewbox': self.lineEdit_viewBox_Nominatim_Tab1.text() if (True if self.lineEdit_viewBox_Nominatim_Tab1.text().find(',')!=-1 else None) else None
+                }]
+            numRows = self.tableWidget_Tab1.rowCount()
+            self.tableWidget_Tab1.insertRow(numRows) # Create a empty row at bottom of table
+            for i in range(len(parameters)): #populate the row
+                self.tableWidget_Tab1.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+            self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+
+        #BAN API
+        else:
+            if self.lineEdit_AddressInput_BAN_Tab1.text() == '' or self.lineEdit_AddressInput_BAN_Tab1.text().isspace():
+                self.lineEdit_AddressInput_BAN_Tab1.setStyleSheet("""
+                    QLineEdit {
+                        color: red; /* Text color */
+                        border: 1px solid red; /* Hollow red border */
+                        border-radius: 2px; 
+                        background-color: white; /* Optional: ensure background is not red */
+                    }""")
+                return
             else:
                 self.lineEdit_AddressInput_BAN_Tab1.setStyleSheet("""QLineEdit { }""")
-                parameters=[
-                    self.lineEdit_AddressInput_BAN_Tab1.text(),
-                    'BAN',
-                    {
-                        'limit': self.spinBox_Limit_BAN_Tab1.value(),
-                        'autocomplete': 1 if self.checkBox_Autocomplete_BAN_Tab1.isChecked() else 0,
-                        'citycode': self.lineEdit_cityCodes_BAN_Tab1.text() if self.lineEdit_cityCodes_BAN_Tab1.text() != '' else None,
-                        'postcode': self.lineEdit_postCode_BAN_Tab1.text() if self.lineEdit_postCode_BAN_Tab1.text() != '' else None,
-                        'type': self.comboBox_locationType_Tab1_BAN.currentText() if self.comboBox_locationType_Tab1_BAN.currentText() != '' else None,
-                        'lat': [float(x) for x in self.lineEdit_coords_BAN_Tab1.text().split(",")][0] if self.lineEdit_coords_BAN_Tab1.text() != '' else None,
-                        'lon': [float(x) for x in self.lineEdit_coords_BAN_Tab1.text().split(",")][1] if self.lineEdit_coords_BAN_Tab1.text() != '' else None
-                    }]
-                numRows = self.tableWidget_Tab1.rowCount()
-                self.tableWidget_Tab1.insertRow(numRows)
-                for i in range(len(parameters)):
-                    self.tableWidget_Tab1.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
-                self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget.rowCount() > 0)
-                self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)
-        else:
-            raise ValueError("Invalid API choice.")        
+            if self.lineEdit_coords_BAN_Tab1.text():
+                try:
+                    self.lineEdit_coords_BAN_Tab1.setStyleSheet("""QLineEdit { }""")
+                    verif_attribute=list(map(float,self.lineEdit_coords_BAN_Tab1.text().split(',')))
+                    if len(verif_attribute)!=2:
+                        raise AttributeError('Not a Bbox')
+                except Exception:
+                    self.lineEdit_coords_BAN_Tab1.setStyleSheet("""
+                        QLineEdit {
+                            color: red; /* Text color */
+                            border: 1px solid red; /* Hollow red border */
+                            border-radius: 2px; 
+                            background-color: white; /* Optional: ensure background is not red */
+                        }""")
+                    return
+            parameters=[
+                self.lineEdit_AddressInput_BAN_Tab1.text(),
+                'BAN',
+                {
+                    'limit': self.spinBox_Limit_BAN_Tab1.value(),
+                    'autocomplete': 1 if self.checkBox_Autocomplete_BAN_Tab1.isChecked() else 0,
+                    'citycode': self.lineEdit_cityCodes_BAN_Tab1.text() if self.lineEdit_cityCodes_BAN_Tab1.text() != '' else None,
+                    'postcode': self.lineEdit_postCode_BAN_Tab1.text() if self.lineEdit_postCode_BAN_Tab1.text() != '' else None,
+                    'type_search': self.comboBox_locationType_Tab1_BAN.currentText() if self.comboBox_locationType_Tab1_BAN.currentText() != '' else None,
+                    'lat': [float(x) for x in self.lineEdit_coords_BAN_Tab1.text().split(",")][0] if (True if self.lineEdit_coords_BAN_Tab1.text().find(',')!=-1 else None) else None,
+                    'lon': [float(x) for x in self.lineEdit_coords_BAN_Tab1.text().split(",")][1] if (True if self.lineEdit_coords_BAN_Tab1.text().find(',')!=-1 else None) else None
+                }]
+            numRows = self.tableWidget_Tab1.rowCount()
+            self.tableWidget_Tab1.insertRow(numRows)
+            for i in range(len(parameters)):
+                self.tableWidget_Tab1.setItem(numRows, i, QtWidgets.QTableWidgetItem(str(parameters[i])))
+            self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab1.rowCount() > 0)
+            self.pushButton_Effacer_ligne_table_Tab1.setEnabled(self.tableWidget_Tab1.rowCount() > 0)     
 
     def removeRwoQTableWidget(self):
         """removeRwoQTableWidget removes the selected row from the QTableWidget.
@@ -179,35 +208,32 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
             output_list=[]
             count_BAN=0
             for index,row in enumerate(data):
-                input=[row[1],row[0],*list(eval(row[2]).values())]
-                if input[0]=='BAN': #Apply usage policies of the API
+                parameters=eval(row[2])
+                parameters['q']=row[0]
+                if row[1]=='BAN': #Apply usage policies of the API
                     count_BAN+=1
                     if count_BAN>50:
                         time.sleep(1)
                         count_BAN=0
-                        output_api=AddressSearch(input[0], input[1:]).result
+                        output_api=AddressSearch(row[1],parameters).result
                         output_api['INDEX']= index
                         output_api['API']= 'BAN'
-                        output_api['ADDRESS']= input[1]
+                        output_api['ADDRESS']=parameters['q']
                         output_list.append(output_api)
                     else:
-                        output_api=AddressSearch(input[0], input[1:]).result
+                        output_api=AddressSearch(row[1],parameters).result
                         output_api['INDEX']= index
                         output_api['API']= 'BAN'
-                        output_api['ADDRESS']= input[1]
+                        output_api['ADDRESS']=parameters['q']
                         output_list.append(output_api)
                 else:
                     time.sleep(1.2)
-                    output_api=AddressSearch(input[0], input[1:]).result
+                    output_api=AddressSearch(row[1],parameters).result
                     output_api['INDEX']= index
                     output_api['API']= 'Nominatim'
-                    output_api['ADDRESS']= input[1]
+                    output_api['ADDRESS']=parameters['q']
                     output_list.append(output_api)
             return prepVector.separate_gdf_by_geometry(gpd.GeoDataFrame(pd.concat(output_list, ignore_index=True)))
-        except RuntimeError as e:
-            raise e
-        except ValueError as e:
-            raise e
         except Exception as e:
             raise e
 
@@ -216,23 +242,37 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
         """loads a CSV file and populates the QTableWidget of the UI with the data.
         it then populate the comboBox with the header of the CSV file to select the address column.
         Hides the OK and delete buttons if the QTableWidget is empty."""
-        file_path = self.mQgsFileWidget_Tab2.filePath()
-        if file_path:
-            with open(file_path, mode='r', encoding='{}'.format(self.comboBox_2_csv_encoding_Tab2.currentText()), newline='') as file:
-                data = list(csv.reader(file, delimiter='{}'.format(self.lineEdit_csv_delimiter_Tab2.text())))
-                if not data:
-                    return
+        
+        try:
+            file_path = self.mQgsFileWidget_Tab2.filePath()
+            if file_path:
+                csv_delimiter = self.comboBox_2_csv_encoding_Tab2.currentText() if self.comboBox_2_csv_encoding_Tab2.currentIndex() != 12 and not self.lineEdit_encoding_perso_csv_Tab2.isVisible() else self.lineEdit_encoding_perso_csv_Tab2.text()
+                with open(file_path, mode='r', encoding=csv_delimiter, newline='') as file:
+                    data = list(csv.reader(file, delimiter='{}'.format(self.lineEdit_csv_delimiter_Tab2.text())))
+                    if not data:
+                        return
 
-                self.tableWidget_Tab2.setRowCount(len(data) - 1)  # Subtract 1 for the header row
-                self.tableWidget_Tab2.setColumnCount(len(data[0]))
-                for row_index, row_data in enumerate(data[1:]):  # Skip the header row
-                    for col_index, cell_data in enumerate(row_data):
-                        self.tableWidget_Tab2.setItem(row_index, col_index, QtWidgets.QTableWidgetItem(cell_data))
-                self.tableWidget_Tab2.setHorizontalHeaderLabels(data[0])
+                    self.tableWidget_Tab2.setRowCount(len(data) - 1)  # Subtract 1 for the header row
+                    self.tableWidget_Tab2.setColumnCount(len(data[0]))
+                    for row_index, row_data in enumerate(data[1:]):  # Skip the header row
+                        for col_index, cell_data in enumerate(row_data):
+                            self.tableWidget_Tab2.setItem(row_index, col_index, QtWidgets.QTableWidgetItem(cell_data))
+                    self.tableWidget_Tab2.setHorizontalHeaderLabels(data[0])
 
-                self.comboBox_address_column_Tab2.clear()
-                self.comboBox_address_column_Tab2.addItems(data[0])
-                self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab2.rowCount() > 0)
+                    self.comboBox_address_column_Tab2.clear()
+                    self.comboBox_address_column_Tab2.addItems(data[0])
+                    self.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(self.tableWidget_Tab2.rowCount() > 0)
+        except Exception as err:
+            QtWidgets.QMessageBox.warning(self, "Warning", f"{err}, try to choose another encoding or to fix your csv file.")
+
+    def update_encoding_parameter(self, index):
+        """Show or hide the QLineEdit for unique encoding."""
+        if index == 12:
+            self.label_encoding_perso_csv_Tab2.show()
+            self.lineEdit_encoding_perso_csv_Tab2.show()
+        else:
+            self.label_encoding_perso_csv_Tab2.hide()
+            self.lineEdit_encoding_perso_csv_Tab2.hide()
 
     def getAddressColumn(self):
         """getAddressColumn returns the index (int) of the address column
@@ -264,16 +304,16 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
                 count_BAN=0
                 for row in range(self.tableWidget_Tab2.rowCount()):
                     item = self.tableWidget_Tab2.item(row, self.getAddressColumn())
-                    if item is not None:
+                    if item:
                         count_BAN+=1
                         if count_BAN > 50:
                             time.sleep(1)
                             count_BAN=0
-                            output=AddressSearch('BAN', [item.text(), 1]).result
+                            output=AddressSearch('BAN', {'q':item.text(), 'limit':1}).result
                             output['ADDRESS']= item.text()
                             yield output
                         else:
-                            output=AddressSearch('BAN', [item.text(), 1]).result
+                            output=AddressSearch('BAN', {'q':item.text(), 'limit':1}).result
                             output['ADDRESS']= item.text()
                             yield output
             else: 
@@ -281,13 +321,9 @@ class ui_mg_address2point(QtWidgets.QDialog, load_ui('Address2Point.ui').FORM_CL
                     item = self.tableWidget_Tab2.item(row, self.getAddressColumn())
                     if item is not None:
                         time.sleep(1.2)
-                        output=AddressSearch('Nominatim', [item.text(), 1]).result
+                        output=AddressSearch('Nominatim', {'q':item.text(), 'limit':1}).result
                         output['ADDRESS']= item.text()
                         yield output
-        except RuntimeError as e:
-            raise e
-        except ValueError as e:
-            raise e
         except Exception as e:
             raise e
 
@@ -327,8 +363,7 @@ class ui_run_address2point():
                             layer_name = '{}_{}'.format(self.dlg.lineEdit_Output_Name.text(),gdf.geom_type.unique()[0])
                             layer = QgsVectorLayer(gdf.to_json(), layer_name, 'ogr')
                             QgsProject.instance().addMapLayer(layer)
-
-                elif self.dlg.tabWidget.currentIndex()==1: #CSV file geocoding
+                else: #CSV file geocoding
                     if self.dlg.tableWidget_Tab2.rowCount()==0:
                         QtWidgets.QMessageBox.warning(self.dlg, "Warning", "Please load your CSV file.")
                         return
@@ -338,11 +373,7 @@ class ui_run_address2point():
                             layer_name = '{}_{}'.format(self.dlg.lineEdit_Output_Name.text(),gdf.geom_type.unique()[0])
                             layer = QgsVectorLayer(gdf.to_json(), layer_name, 'ogr')
                             QgsProject.instance().addMapLayer(layer)
-                else:
-                    raise ValueError("Invalid tab index.")
-            except RuntimeError as e:
-                raise e
             except ValueError as e:
-                raise e
+                QtWidgets.QMessageBox.warning(self.dlg, "Warning", f"No result for '{e}', try with more details, change the parameters or try another API.")
             except Exception as e:
                 raise e

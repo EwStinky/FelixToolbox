@@ -732,11 +732,34 @@
         </widget>
        </item>
        <item>
-        <layout class="QGridLayout" name="gridLayout_8">
+        <layout class="QGridLayout" name="gridLayout_csv_parameters">
          <item row="0" column="1">
           <widget class="QLabel" name="label_csv_encoding_Tab2">
            <property name="text">
             <string>CSV encoding</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="4">
+          <widget class="QPushButton" name="pushButton_csv_file_load_Tab2">
+           <property name="text">
+            <string>Load</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLineEdit" name="lineEdit_csv_delimiter_Tab2">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>;</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
            </property>
           </widget>
          </item>
@@ -802,10 +825,22 @@
              <string>mac_roman</string>
             </property>
            </item>
+           <item>
+            <property name="text">
+             <string>Other encoding ...</string>
+            </property>
+           </item>
           </widget>
          </item>
-         <item row="1" column="2">
-          <spacer name="horizontalSpacer_3">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_csv_delimiter_Tab2">
+           <property name="text">
+            <string>CSV delimiter</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="3">
+          <spacer name="horizontalSpacer_csv_parameters_Tab2">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -817,33 +852,17 @@
            </property>
           </spacer>
          </item>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_csv_delimiter_Tab2">
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_encoding_perso_csv_Tab2">
            <property name="text">
-            <string>CSV delimiter</string>
+            <string>Encoding used for the file</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="3">
-          <widget class="QPushButton" name="pushButton_csv_file_load_Tab2">
-           <property name="text">
-            <string>Load</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLineEdit" name="lineEdit_csv_delimiter_Tab2">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string>;</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="lineEdit_encoding_perso_csv_Tab2">
+           <property name="placeholderText">
+            <string>Write your encoding</string>
            </property>
           </widget>
          </item>

@@ -18,8 +18,9 @@
 import pandas as pd
 import geopandas as gpd
 import requests
-from shapely.geometry import shape
-import libpysal
+from shapely.geometry import shape, polygon
+from shapely.ops import voronoi_diagram
+from shapely.wkt import loads
 import time
 from .utilsLibrary import decorators
 
@@ -127,23 +128,31 @@ class Isochrone_API_IGN:
         return gdf
     
     @staticmethod
-    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:tuple=None) -> gpd.GeoDataFrame:
+    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None) -> gpd.GeoDataFrame:
         """Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points."""
-        dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] 
-        difference = []
-        difference.append(dissolved_gdf[0])  
-        for u in range(len(range_value) - 1): 
-            output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
-            difference.append(output)
-        gdf = pd.concat(difference)
-        gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
-        gdf.to_crs(epsg=3857, inplace=True) #Need a projected CRS to work, right now I'm using web mercator for a global usage but I'm not sure which one to use!
-        gdf.set_geometry('geometry', inplace=True)
-        point_layer.to_crs("EPSG:3857",inplace=True)
-        voronoi_polygon=libpysal.cg.voronoi_frames(geometry =point_layer, clip=voronoi_extend_layer, as_gdf=True)
-        gdf_voronoi = gpd.overlay(gdf, voronoi_polygon[0], how='intersection')
-        gdf_voronoi.to_crs(4326,inplace=True)
-        return gdf_voronoi
+        try:
+            dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] 
+            difference = []
+            difference.append(dissolved_gdf[0])  
+            for u in range(len(range_value) - 1): 
+                output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
+                difference.append(output)
+            gdf = pd.concat(difference)
+            gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
+            gdf.to_crs(epsg=4326, inplace=True)
+            gdf.set_geometry('geometry', inplace=True)
+            point_layer.to_crs("EPSG:4326",inplace=True)
+            voronoi_polygon = gpd.GeoDataFrame(
+                geometry=[geom for geom in list(voronoi_diagram(point_layer.unary_union, envelope=loads(str(voronoi_extend_layer)) if voronoi_extend_layer else None).geoms)], #union_all() if geopandas >= 1.0.0
+                crs="EPSG:4326"
+                )
+            voronoi_polygon['id_voronoi'] = range(len(voronoi_polygon))
+            voronoi_polygon_cliped=gpd.overlay(voronoi_polygon,  gpd.GeoDataFrame(geometry=[voronoi_extend_layer], crs="EPSG:4326"), how='intersection') if voronoi_extend_layer else voronoi_polygon
+            gdf_voronoi = gpd.overlay(gdf, voronoi_polygon_cliped, how='intersection')
+            gdf_voronoi.to_crs(4326,inplace=True)
+            return gdf_voronoi
+        except Exception as err:
+            raise err
 
     def main(self) -> gpd.GeoDataFrame:
         """
