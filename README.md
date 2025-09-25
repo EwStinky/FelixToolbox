@@ -55,7 +55,6 @@ The plugin contains several tools such as the creation of isochrones from severa
 - pandas
 - geopandas < 1.0.0 (because of the version used in QGIS 3.x)
 - requests
-- libpysal
 
 ## 🎉 Contributing
 

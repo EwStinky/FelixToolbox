@@ -178,6 +178,7 @@ class ui_run_isochrone_ign():
     """
     def __init__(self):
         self.dlg = ui_mg_isochrone_ign()
+        self.dlg.voronoi_clip_options={'None':"None",'Bounding box':"layer.unary_union.envelope",'Convex hull':"layer.unary_union.convex_hull"}
     
     def run(self): 
         self.dlg.comboBox_layer_QGIS.clear()
@@ -192,7 +193,6 @@ class ui_run_isochrone_ign():
                         self.dlg.voronoi_comboBoxLayer.addItem(layer.name(), layer.id())
 
         ui=self.dlg.exec()
-
         if ui == QtWidgets.QDialog.Accepted:
             try:
                 for index,data in enumerate(self.dlg.getQTableWidgetData()):
@@ -201,10 +201,9 @@ class ui_run_isochrone_ign():
                     layer.to_crs('EPSG:4326', inplace=True)
                     parameters=eval(data[3])
                     if parameters['voronoi_extend_layer']:
-                        if parameters['voronoi_extend_layer']=='Bounding box': parameters['voronoi_extend_layer']=layer.unary_union.envelope
-                        if parameters['voronoi_extend_layer']=='Convex hull': parameters['voronoi_extend_layer']=layer.unary_union.convex_hull
-                        if parameters['voronoi_extend_layer']=='None': parameters['voronoi_extend_layer']=None
-                        if parameters['voronoi_extend_layer'] not in ['None','Bounding box','Convex hull']:
+                        if parameters['voronoi_extend_layer'] in self.dlg.voronoi_clip_options.keys():
+                            parameters['voronoi_extend_layer']=eval(self.dlg.voronoi_clip_options[parameters['voronoi_extend_layer']])
+                        else:
                             parameters['voronoi_extend_layer']=prepVector.layer_to_geodataframe(QgsProject.instance().mapLayer(parameters['voronoi_extend_layer'])).to_crs("EPSG:4326")
                             parameters['voronoi_extend_layer']=parameters['voronoi_extend_layer'].unary_union #union_all() if geopandas >= 1.0.0
                     processingMode = 0 if data[2] == 'Merge isochrones by cost type' else 1 if data[2] == 'Separate each isochron' else 2
