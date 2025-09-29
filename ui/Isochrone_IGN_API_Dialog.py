@@ -38,10 +38,14 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
         self.pushButton_Effacer_ligne_table.clicked.connect(self.removeRwoQTableWidget)
         self.pushButton_Effacer_ligne_table.setEnabled(self.tableWidget.rowCount() > 0)
         self.comboBox_CostType.currentTextChanged.connect(self.update_unit_combobox) 
-        self.comboBox_processingMode.currentIndexChanged.connect(self.update_voronoi_parameters)
+        self.comboBox_processingMode.currentIndexChanged.connect(self.update_processing_mode_parameters)
         self.list_layers = [] #List of layers id selected by the user, its purpose is a bit excessive but it is to avoid confusion in QGIS if several layers share the same name.
         self.gridLayout_input.addWidget(self.create_voronoi_parameters(), 2, 1)
         self.voronoi_subWidget.hide()
+        self.comboBox_layer_QGIS.currentIndexChanged.connect(self.refreshKeyLayer)
+        # Hide the key comboBox and label by default because the default processing mode is 0 (Merge isochrones by cost type)
+        self.comboBox_key.hide()
+        self.comboBox_key_label.hide()
         
     def closeEvent(self, event):
         """closeEvent is used to reset the widgets to their default settings.
@@ -92,7 +96,9 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
                     'constraints': self.lineEdit_constraint.text(),
                     'distanceUnit':[i if i=='kilometer' else 'meter' for i in [self.comboBox_Unit.currentText()]][0],
                     'timeUnit':[i if i in ('second', 'minute', 'hour', 'standard') else 'minute' for i in [self.comboBox_Unit.currentText()]][0],
-                    'voronoi_extend_layer':self.voronoi_comboBoxLayer.itemData(self.voronoi_comboBoxLayer.currentIndex()) if self.voronoi_comboBoxLayer.isVisible() else self.voronoi_comboBoxClipType.currentText() if self.voronoi_subWidget.isVisible() else None}
+                    'voronoi_extend_layer':self.voronoi_comboBoxLayer.itemData(self.voronoi_comboBoxLayer.currentIndex()) if self.voronoi_comboBoxLayer.isVisible() else self.voronoi_comboBoxClipType.currentText() if self.voronoi_subWidget.isVisible() else None,
+                    'key': self.comboBox_key.currentText() if self.comboBox_key.currentText() != "None" else None
+                    }
                 ]
             self.list_layers.append(self.comboBox_layer_QGIS.itemData(self.comboBox_layer_QGIS.currentIndex()))
             self.comboBox_layer_QGIS.setCurrentIndex(-1) #back to default
@@ -155,12 +161,20 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
         self.voronoi_comboBoxClipType.currentIndexChanged.connect(self.update_voronoi_clip_layer_parameters)
         return self.voronoi_subWidget
 
-    def update_voronoi_parameters(self, index):
-        """Update the QGridLayout to show or hide the Voronoi processing mode parameters."""
+    def update_processing_mode_parameters(self, index):
+        """Update the QGridLayout to show or hide the Voronoi processing mode parameters.
+        Also show or hide the key comboBox and label based on the processing mode selected."""
         if index == 2:
             self.voronoi_subWidget.show()
         else:
             self.voronoi_subWidget.hide()
+            
+        if index == 2 or index == 1:
+            self.comboBox_key.show()
+            self.comboBox_key_label.show()
+        else:
+            self.comboBox_key.hide()
+            self.comboBox_key_label.hide()
 
     def update_voronoi_clip_layer_parameters(self, index):
         """Update the QGridLayout to show or hide the Voronoi processing mode parameters."""
@@ -170,6 +184,21 @@ class ui_mg_isochrone_ign(QtWidgets.QDialog, load_ui('Isochrone_IGN_API.ui').FOR
         else:
             self.voronoi_comboBoxLayer.hide()
             self.voronoi_combobox_Polygon_label.hide()
+            
+    def refreshKeyLayer(self):
+        """Refresh the key comboBox comboBox_key with the attributes of the layer selected in the comboBox_layer_QGIS comboBox."""
+        self.comboBox_key.clear()
+        if self.comboBox_layer_QGIS.currentText()=="":
+            pass
+        else:
+            layer=QgsProject.instance().mapLayer(self.comboBox_layer_QGIS.itemData(self.comboBox_layer_QGIS.currentIndex()))
+            if layer is not None:
+                fields = layer.fields()
+                field_names = [field.name() for field in fields]
+                self.comboBox_key.addItem("None") #Add an empty item at the top of the list
+                self.comboBox_key.addItems(field_names)
+        
+        
     
 class ui_run_isochrone_ign():
     """ui_run_isochrone_ign is used to run Isochrones_IGN_API's UI.

@@ -25,7 +25,7 @@ import time
 from .utilsLibrary import decorators
 
 class Isochrone_API_IGN:
-    def __init__(self, input_layer:gpd.GeoDataFrame, range_value:list[int], processingMode:int=0, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326', voronoi_extend_layer=None):
+    def __init__(self, input_layer:gpd.GeoDataFrame, range_value:list[int], processingMode:int=0, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326', voronoi_extend_layer=None,key:str=None):
         """Initializes the Isochrone_API_IGN_V2 class the input layer and the range value.
         Every other parameters are set to their default value but can be changed, they are regrouped in a list to be used in 
         the request_IGN_isochrone_api function.
@@ -33,12 +33,15 @@ class Isochrone_API_IGN:
         Args:
             * input_layer (gpd.GeoDataFrame): a GeoDataFrame object representing the location of the points from which the isochrones will be calculated.
             * range_value (list[int]): a list of integers representing the time/distance values for which the isochrones will be calculated.
+            * key (str): The name of the key attribute in the output. If None or 'None', the column will not be created.
             * processingMode (int): Processing mode chosen by the user that decided the output type coming from the Isochrone_API_IGN.main().
             * voronoi_extend_layer (str | tuple): Selected input for the clipping of the voronoi's cells if the voronoi processing mode has been selected.
             * for the other parameters in self.params, see the request_IGN_isochrone_api function
         """
+       
         self.input_layer= input_layer
         self.range_value = range_value
+        self.attributKey = key
         self.processingMode = processingMode
         self.params=[resource,costType,profile,direction,constraints,geometryFormat,distanceUnit,timeUnit,crs]
         self.voronoi_extend_layer=voronoi_extend_layer
@@ -49,7 +52,7 @@ class Isochrone_API_IGN:
 
     @staticmethod
     @decorators.retryRequest(min_wait=1, wait_multiplier=2, max_retries=3)
-    def request_IGN_isochrone_api(point:str , costValue:int, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326') -> gpd.GeoDataFrame:
+    def request_IGN_isochrone_api(point:str , costValue:int,valueKey:str=None, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326') -> gpd.GeoDataFrame:
         """
         The function `request_IGN_isochrone_api` prepares the body parameters for the isochrone API request from IGN service.
         It then sends a GET request to the IGN isochrone API and returns the response from the API as a geojson.
@@ -58,6 +61,7 @@ class Isochrone_API_IGN:
             point (str): Coordinates of a point position: 'lon,lat'. This is the point from which calculations are made. It must be in EPSG:4326 format.
             costValue (int): Cost value used for calculation. You can, for example, specify a distance or a time, depending on the chosen optimization. 
                              The unit will also depend on the distanceUnit and timeUnit parameters.
+            valueKey (str): The value of the key attribute in the output. If None or 'None', the column will not be created.
             resource (str): Resource used for calculation. Possible values are: bdtopo-valhalla, bdtopo-pgr, pgr_sgl_r100_all, graph_pgr_D013. 
             costType (str): Type of cost used for calculation. The unit will also depend on the distanceUnit and timeUnit parameters. 
                             Possible values are: time, distance
@@ -95,11 +99,12 @@ class Isochrone_API_IGN:
         call=requests.get('https://data.geopf.fr/navigation/isochrone',params=api_body,headers=api_headers)
         call.raise_for_status()
         
-        gdf = gpd.GeoDataFrame(
-            [{'geometry': shape(call.json()['geometry']), **{k: v for k, v in call.json().items() if k != 'geometry'}}],
-            geometry='geometry',
-            crs='EPSG:4326'
-        )
+        base_dict = {'geometry': shape(call.json()['geometry']), **{k: v for k, v in call.json().items() if k != 'geometry'}}
+
+        if valueKey is not None and valueKey != 'None':
+            base_dict['valueKey'] = valueKey
+
+        gdf = gpd.GeoDataFrame([base_dict], geometry='geometry', crs='EPSG:4326')
         return gdf
     
     @staticmethod
@@ -164,19 +169,19 @@ class Isochrone_API_IGN:
         try:
             list_gdf = []
             count_api=0
-            for coordinates in ['{},{}'.format(f.x,f.y) for f in self.input_layer['{}'.format('geometry')]]:
+            attribute_values = self.input_layer[self.attributKey] if self.attributKey is not None else [None] * len(self.input_layer['geometry'])
+            for f, i in zip(self.input_layer['geometry'], attribute_values):
+                coordinates = '{},{}'.format(f.x, f.y)
                 for value in self.range_value:
                     if count_api == 5:
                         time.sleep(1)
-                        count_api=1
-                        output = self.request_IGN_isochrone_api(coordinates, value, *self.params)
-                        output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
-                        list_gdf.append(output)
+                        count_api = 1
                     else:
-                        count_api+=1
-                        output = self.request_IGN_isochrone_api(coordinates, value, *self.params)
-                        output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
-                        list_gdf.append(self.request_IGN_isochrone_api(coordinates, value, *self.params))
+                        count_api += 1
+                    
+                    output = self.request_IGN_isochrone_api(coordinates, value,i, *self.params)
+                    output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
+                    list_gdf.append(output)
             if self.processingMode == 0: 
                 return self.post_api_dissolve_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value)
             elif self.processingMode == 1:
