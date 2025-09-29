@@ -10,6 +10,7 @@
 
 from PyQt5.QtWidgets import QAction, QMenu
 from PyQt5.QtGui import QIcon
+from qgis.core import QgsSettings
 import os
 from  .library import *
 from .ui import *
@@ -77,6 +78,17 @@ class felixtoolbox_menu:
         self.requestSirene.triggered.connect(lambda: ui_run_request_sirene().run())
         self.geocoding_menu.addAction(self.requestSirene)
 
+        #4. Settings submenu
+        self.settings_menu = QMenu(u'Settings')
+        icon = QIcon(os.path.dirname(__file__) + "/icons/2699_color.png")
+        self.add_submenu(self.settings_menu, icon)
+
+        #4.A. API keys storage action
+        icon = QIcon(os.path.dirname(__file__) + "/icons/1F511_color.png")  
+        self.api_keys = QAction(icon, u'API key storage', self.iface.mainWindow())
+        self.api_keys.triggered.connect(lambda: ui_run_api_key().run())
+        self.settings_menu.addAction(self.api_keys)
+
     def unload(self):
         if self.menu != None:
             self.iface.mainWindow().menuBar().removeAction(self.menu.menuAction())
@@ -84,3 +96,5 @@ class felixtoolbox_menu:
             self.iface.removePluginMenu("&Félix's toolbox", self.mapping_menu.menuAction())
             self.iface.removePluginMenu("&Félix's toolbox", self.accessibility_menu.menuAction())
             self.iface.removePluginMenu("&Félix's toolbox", self.geocoding_menu.menuAction())
+            self.iface.removePluginMenu("&Félix's toolbox", self.settings_menu.menuAction())
+        QgsSettings().remove("FelixToolbox")

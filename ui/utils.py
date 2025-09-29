@@ -13,7 +13,7 @@ import geopandas as gpd
 import pandas as pd
 
 from qgis.PyQt import uic
-from qgis.core import QgsVectorLayer
+from qgis.core import QgsVectorLayer, QgsSettings
 
 class load_ui():
     """
@@ -22,6 +22,15 @@ class load_ui():
     """
     def __init__(self, file):
         self.FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), file))
+
+class UI_tools():
+    """
+    This class contains functions that can be used for UI management.
+    """
+    def read_API_key(api_name):
+        """read_API_key reads the QgsSettings of the plugin to verify if the desired API 
+        is stored and returns it if it exists, otherwise returns None."""
+        return QgsSettings().value(f'FelixToolbox/{api_name}', None)
 
 class prepVector():
     """

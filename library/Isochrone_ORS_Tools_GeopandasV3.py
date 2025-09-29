@@ -69,23 +69,29 @@ class Isochrone_API_ORS:
         return: 
         * call.json: variable the JSON response data from the ORS Tools isochrone API request
         """
-        api_headers  = {
-            'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-            'Authorization': api_ors_key,
-            'Content-Type': 'application/json; charset=utf-8'
-            }
+        try:
+            api_headers  = {
+                'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+                'Authorization': api_ors_key,
+                'Content-Type': 'application/json; charset=utf-8'
+                }
 
-        api_body = {
-            'locations':input_coordinates,
-            'range':interval_seconds,
-            'location_type':location_type,
-            'range_type':"time",
-            'attributes':["area","reachfactor"],
-            'smoothing':smoothing,
-        }
-        call=requests.post('https://api.openrouteservice.org/v2/isochrones/{}'.format(transportation),json=api_body,headers=api_headers)
-        call.raise_for_status()
-        return call.json()
+            api_body = {
+                'locations':input_coordinates,
+                'range':interval_seconds,
+                'location_type':location_type,
+                'range_type':"time",
+                'attributes':["area","reachfactor"],
+                'smoothing':smoothing,
+            }
+            call=requests.post('https://api.openrouteservice.org/v2/isochrones/{}'.format(transportation),json=api_body,headers=api_headers)
+            call.raise_for_status()
+            return call.json()
+        except Exception as e:
+            if call.status_code == 403: # Not authorized, invalid API key
+                raise ValueError("Invalid API key provided.")
+            else:
+                raise e
 
     @staticmethod
     def verif_list_int(interval_minutes: list):
