@@ -18,7 +18,7 @@
 import pandas as pd
 import geopandas as gpd
 import requests
-from shapely.geometry import shape, polygon
+from shapely.geometry import shape, polygon, Point
 from shapely.ops import voronoi_diagram
 from shapely.wkt import loads
 import time
@@ -134,31 +134,95 @@ class Isochrone_API_IGN:
     
     @staticmethod
     def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None) -> gpd.GeoDataFrame:
-        """Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points."""
+        """
+        Process input geodataframe by creating Voronoi polygons from points and computing differences between cost value rings.
+        
+        This function creates Voronoi diagrams from point locations, intersects them with input isochrones,
+        filters to keep only relevant zones, and computes ring differences for each Voronoi zone.
+        
+        Args:
+            input_gdf (gpd.GeoDataFrame): Input geodataframe containing isochrone geometries with 'costValue' and 'point' attributes
+            range_value (list): List of cost values to process
+            point_layer (gpd.GeoDataFrame): Points used to generate Voronoi polygons
+            voronoi_extend_layer (polygon.Polygon, optional): Boundary polygon to clip Voronoi diagram. Defaults to None.
+        
+        Returns:
+            gpd.GeoDataFrame: Processed geodataframe with ring geometries, centroids, and associated attributes
+        """
         try:
-            dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] 
-            difference = []
-            difference.append(dissolved_gdf[0])  
-            for u in range(len(range_value) - 1): 
-                output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
-                difference.append(output)
-            gdf = pd.concat(difference)
-            gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
-            gdf.to_crs(epsg=4326, inplace=True)
-            gdf.set_geometry('geometry', inplace=True)
-            point_layer.to_crs("EPSG:4326",inplace=True)
+            # Create Voronoi polygons
+            point_layer.to_crs("EPSG:4326", inplace=True)
             voronoi_polygon = gpd.GeoDataFrame(
-                geometry=[geom for geom in list(voronoi_diagram(point_layer.unary_union, envelope=loads(str(voronoi_extend_layer)) if voronoi_extend_layer else None).geoms)], #union_all() if geopandas >= 1.0.0
+                geometry=[geom for geom in list(voronoi_diagram(
+                    point_layer.unary_union, 
+                    envelope=loads(str(voronoi_extend_layer)) if voronoi_extend_layer else None
+                ).geoms)],
                 crs="EPSG:4326"
-                )
+            )
             voronoi_polygon['id_voronoi'] = range(len(voronoi_polygon))
-            voronoi_polygon_cliped=gpd.overlay(voronoi_polygon,  gpd.GeoDataFrame(geometry=[voronoi_extend_layer], crs="EPSG:4326"), how='intersection') if voronoi_extend_layer else voronoi_polygon
-            gdf_voronoi = gpd.overlay(gdf, voronoi_polygon_cliped, how='intersection')
-            gdf_voronoi.to_crs(4326,inplace=True)
-            return gdf_voronoi
+            voronoi_polygon_cliped = gpd.overlay(
+                voronoi_polygon, 
+                gpd.GeoDataFrame(geometry=[voronoi_extend_layer], crs="EPSG:4326"), 
+                how='intersection'
+            ) if voronoi_extend_layer else voronoi_polygon
+            
+            # Intersect input geodataframe with Voronoi polygons
+            input_gdf.to_crs(epsg=4326, inplace=True)
+            gdf_voronoi = gpd.overlay(input_gdf, voronoi_polygon_cliped, how='intersection')
+            
+            def point_in_geometry(row):
+                """Check if the point attribute is contained within the geometry."""
+                try:
+                    [x, y] = row['point'].split(',')
+                    pt = Point(float(x), float(y))
+                    return row['geometry'].contains(pt)
+                except:
+                    return False
+        
+            # Filter clipped isochrones with Voronoi polygons to keep only occurrences that intersect the starting point   
+            gdf_voronoi = gdf_voronoi[gdf_voronoi.apply(point_in_geometry, axis=1)] 
+            
+            # If only one isochrone value, no need for differences
+            print(len(range_value))
+            if len(range_value) == 1:
+                gdf = gdf_voronoi.copy()
+            # Otherwise, process differences by groups of isochrones that share the same Voronoi polygon id, 
+            # starting from the largest costValue down to the smallest     
+            else:
+                difference = []
+                # Group by id_voronoi
+                for voronoi_id, group in gdf_voronoi.groupby('id_voronoi'):
+                    group_sorted = group.sort_values('costValue', ascending=False).reset_index(drop=True)
+                    # Loop through group occurrences (from largest to smallest)
+                    for idx in range(len(group_sorted)):
+                        current_row = group_sorted.iloc[idx]
+                        current_geom = gpd.GeoDataFrame([current_row], crs=gdf_voronoi.crs)
+                        # If this is the last one (= smallest costValue)
+                        if idx == len(group_sorted) - 1:
+                            difference.append(current_geom)
+                        else:
+                            next_row = group_sorted.iloc[idx + 1]
+                            next_geom = gpd.GeoDataFrame([next_row], crs=gdf_voronoi.crs)
+                            result = gpd.overlay(current_geom, next_geom, how='difference')
+                            difference.append(result)
+                    
+                gdf = pd.concat(difference, ignore_index=True)
+            
+            # Calculate centroid coordinates for each geometry    
+            gdf[['value', 'Xcentroid', 'Ycentroid']] = gdf.apply(
+                lambda row: pd.Series([
+                    row['costValue'], 
+                    row['geometry'].centroid.x, 
+                    row['geometry'].centroid.y
+                ]), 
+                axis=1
+            )
+            
+            return gdf
+            
         except Exception as err:
             raise err
-
+        
     def main(self) -> gpd.GeoDataFrame:
         """
         The function `main` is the main function of the class. It retrieves the coordinates of the points in the input layer,
