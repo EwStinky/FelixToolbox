@@ -11,7 +11,7 @@
         github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
-from .utils import load_ui, prepVector, usefullVariable
+from .utils import load_ui, prepVector, usefullVariable, UI_tools
 from ..library import siretInPolygonFilteredByCoordinates, siretInPolygonFilteredByAddresses,apiSireneUtils
 
 from qgis.PyQt import QtWidgets
@@ -156,6 +156,7 @@ class ui_run_request_sirene():
         self.dlg = ui_mg_request_sirene()
     def run(self): 
         self.dlg.comboBox_layer_QGIS.clear()
+        self.dlg.lineEdit_api_key.setText(UI_tools.read_API_key('SIRENE_API_KEY'))
         for layer in QgsProject.instance().mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PolygonGeometry:
                 self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())

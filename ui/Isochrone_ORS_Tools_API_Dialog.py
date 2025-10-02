@@ -11,7 +11,7 @@
         github               : https://github.com/EwStinky/FelixToolbox
  ***************************************************************************/
 """
-from .utils import load_ui, prepVector
+from .utils import load_ui, prepVector, UI_tools
 from ..library import Isochrone_API_ORS
 
 from qgis.PyQt import QtWidgets
@@ -174,6 +174,7 @@ class ui_run_isochrone():
     
     def run(self): 
         self.dlg.comboBox_layer_QGIS.clear()
+        self.dlg.lineEdit_api_key.setText(UI_tools.read_API_key('ORS_API_KEY'))
         for layer in QgsProject.instance().mapLayers().values():
             if layer.type() == QgsMapLayerType.VectorLayer and layer.geometryType() == QgsWkbTypes.PointGeometry:
                 self.dlg.comboBox_layer_QGIS.addItem(layer.name(), layer.id())
