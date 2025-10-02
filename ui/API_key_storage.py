@@ -48,7 +48,7 @@ class ui_mg_api_key(QtWidgets.QDialog, load_ui('API_keys_storage.ui').FORM_CLASS
         if test_ors and test_sirene:
             QtWidgets.QMessageBox.information(self, "Success", "Both API keys are valid.")
         else:
-            QtWidgets.QMessageBox.warning(self, "Warning", f"SIRENE API key: {"Valid" if test_sirene else "Invalid"} - ORS API key: {"Valid" if test_ors else "Invalid"}")
+            QtWidgets.QMessageBox.warning(self, "Warning", f"SIRENE API key: {'Valid' if test_sirene else 'Invalid'} - ORS API key: {'Valid' if test_ors else 'Invalid'}")
 
 class ui_run_api_key():
     """ui_run_api_key is used to run the dialog window and execute the functions"""
