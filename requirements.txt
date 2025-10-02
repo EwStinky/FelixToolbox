@@ -2,5 +2,4 @@ pandas
 geopandas
 requests
 tenacity
-libpysal
 PyQt5
