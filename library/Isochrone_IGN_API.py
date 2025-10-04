@@ -287,6 +287,34 @@ class Isochrone_API_IGN:
         """
         try:
             list_gdf = []
+            count_api=1
+            for index, row in self.input_layer.iterrows():
+                coordinates = '{},{}'.format(row['geometry'].x,row['geometry'].y)
+                for value in self.range_value:
+                    count_api+=1
+                    if count_api%6==0:
+                        time.sleep(1)
+                    count_api=1
+                    output = self.request_IGN_isochrone_api(coordinates, value, **self.params)
+                    output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
+                    output['keyValue'] = row['{}'.format(self.attributKey)] if self.attributKey is not None else None
+                    list_gdf.append(output)
+            if self.processingMode == 0: 
+                return self.post_api_dissolve_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value)
+            elif self.processingMode == 1:
+                return gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True))
+            else:
+                return self.post_api_voronoi_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value, self.input_layer, self.voronoi_extend_layer, self.attributKey)
+        except Exception as err:
+            raise err
+        """
+        The function `main` is the main function of the class. It retrieves the coordinates of the points in the input layer,
+        then it loops through each point and calls the `request_IGN_isochrone_api` function to get the isochrones for each point.
+        It then merges all the isochrones together and creates a new GeoDataFrame representing the time/distance range unit of this time/distance value.
+        the function respects the usage policy of the IGN API by waiting 1 second after every 5 requests.
+        """
+        try:
+            list_gdf = []
             count_api=0
             attribute_values = self.input_layer[self.attributKey] if self.attributKey is not None else [None] * len(self.input_layer['geometry'])
             for f, i in zip(self.input_layer['geometry'], attribute_values):
