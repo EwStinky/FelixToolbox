@@ -18,7 +18,7 @@
 import pandas as pd
 import geopandas as gpd
 import requests
-from shapely.geometry import shape, polygon, Point
+from shapely.geometry import shape, polygon
 from shapely.ops import voronoi_diagram
 from shapely.wkt import loads
 import time
