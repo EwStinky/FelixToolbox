@@ -61,7 +61,7 @@ class Isochrone_API_IGN:
 
     @staticmethod
     @decorators.retryRequest(min_wait=1, wait_multiplier=2, max_retries=3)
-    def request_IGN_isochrone_api(point:str , costValue:int,valueKey:str=None, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326') -> gpd.GeoDataFrame:
+    def request_IGN_isochrone_api(point:str , costValue:int, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326') -> gpd.GeoDataFrame:
         """
         The function `request_IGN_isochrone_api` prepares the body parameters for the isochrone API request from IGN service.
         It then sends a GET request to the IGN isochrone API and returns the response from the API as a geojson.
