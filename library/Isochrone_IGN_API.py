@@ -25,7 +25,7 @@ import time
 from .utilsLibrary import decorators
 
 class Isochrone_API_IGN:
-    def __init__(self, input_layer:gpd.GeoDataFrame, range_value:list[int], processingMode:int=0, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326', voronoi_extend_layer=None):
+    def __init__(self, input_layer:gpd.GeoDataFrame, range_value:list[int], processingMode:int=0, resource:str='bdtopo-valhalla', costType:str="time", profile:str='car', direction:str='arrival', constraints:str=None, geometryFormat:str='geojson', distanceUnit:str='meter', timeUnit:str='minute', crs:str='EPSG:4326', voronoi_extend_layer=None,key:str=None):
         """Initializes the Isochrone_API_IGN_V2 class the input layer and the range value.
         Every other parameters are set to their default value but can be changed, they are regrouped in a list to be used in 
         the request_IGN_isochrone_api function.
@@ -33,14 +33,26 @@ class Isochrone_API_IGN:
         Args:
             * input_layer (gpd.GeoDataFrame): a GeoDataFrame object representing the location of the points from which the isochrones will be calculated.
             * range_value (list[int]): a list of integers representing the time/distance values for which the isochrones will be calculated.
+            * key (str): The name of the key attribute that will be used as key value in the output. If None or 'None', the column will be filled with None.
             * processingMode (int): Processing mode chosen by the user that decided the output type coming from the Isochrone_API_IGN.main().
             * voronoi_extend_layer (str | tuple): Selected input for the clipping of the voronoi's cells if the voronoi processing mode has been selected.
             * for the other parameters in self.params, see the request_IGN_isochrone_api function
         """
+       
         self.input_layer= input_layer
         self.range_value = range_value
+        self.attributKey = key
         self.processingMode = processingMode
-        self.params=[resource,costType,profile,direction,constraints,geometryFormat,distanceUnit,timeUnit,crs]
+        self.params={
+            'resource':resource,
+            'costType':costType,
+            'profile':profile,
+            'direction':direction,
+            'constraints':constraints,
+            'geometryFormat':geometryFormat,
+            'distanceUnit':distanceUnit,
+            'timeUnit':timeUnit,
+            'crs':crs}
         self.voronoi_extend_layer=voronoi_extend_layer
         try:
             self.output = self.main().to_json()
@@ -95,11 +107,7 @@ class Isochrone_API_IGN:
         call=requests.get('https://data.geopf.fr/navigation/isochrone',params=api_body,headers=api_headers)
         call.raise_for_status()
         
-        gdf = gpd.GeoDataFrame(
-            [{'geometry': shape(call.json()['geometry']), **{k: v for k, v in call.json().items() if k != 'geometry'}}],
-            geometry='geometry',
-            crs='EPSG:4326'
-        )
+        gdf = gpd.GeoDataFrame([{'geometry': shape(call.json()['geometry']), **{k: v for k, v in call.json().items() if k != 'geometry'}}], geometry='geometry', crs='EPSG:4326')
         return gdf
     
     @staticmethod
@@ -128,8 +136,21 @@ class Isochrone_API_IGN:
         return gdf
     
     @staticmethod
-    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None) -> gpd.GeoDataFrame:
-        """Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points."""
+    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None, key_attribute:str=None) -> gpd.GeoDataFrame:
+        """
+        Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points.
+
+        Args:
+            input_gdf (gpd.GeoDataFrame): GeoDataFrames containing isochrones from the API request.
+            range_value: list[int]: a list of integers representing the time/distance values for which the isochrones will be calculated
+            point_layer (gpd.GeoDataFrame): GeoDataFrame representing the input point layer used to calculate the isochrones.
+            voronoi_extend_layer (polygon.Polygon, optional): Polygon used to clip the voronoi's cells. If None, no clipping is applied. Defaults to None.
+            key_attribute (str, optional): Name of the point_layer attribute to use as a key value in the output. If None, None values are assigned to the keyValue column.
+
+        Returns:
+            gdf_voronoi | gdf_voronoi_with_key (gpd.GeoDataFrame): A GeoDataFrame representing the merged isochrones after the difference of each layers and clipped with the voronoi's cells.
+            If key_attribute is provided, the value 'keyValue' will be corresponding to the value of the attribute for the point from the isochrone has been calculated.
+        """
         try:
             dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] 
             difference = []
@@ -138,7 +159,7 @@ class Isochrone_API_IGN:
                 output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
                 difference.append(output)
             gdf = pd.concat(difference)
-            gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
+            #gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
             gdf.to_crs(epsg=4326, inplace=True)
             gdf.set_geometry('geometry', inplace=True)
             point_layer.to_crs("EPSG:4326",inplace=True)
@@ -150,7 +171,22 @@ class Isochrone_API_IGN:
             voronoi_polygon_cliped=gpd.overlay(voronoi_polygon,  gpd.GeoDataFrame(geometry=[voronoi_extend_layer], crs="EPSG:4326"), how='intersection') if voronoi_extend_layer else voronoi_polygon
             gdf_voronoi = gpd.overlay(gdf, voronoi_polygon_cliped, how='intersection')
             gdf_voronoi.to_crs(4326,inplace=True)
-            return gdf_voronoi
+            gdf_voronoi.drop(columns=['X_input_point','Y_input_point'], inplace=True)
+
+            if key_attribute:
+                gdf2concat=[]
+                gdf_voronoi['keyValue'] = None
+                for index, row in point_layer.iterrows():
+                    gdf_voronoi.loc[gdf_voronoi[gdf_voronoi.intersects(row['geometry'])].index, 'keyValue'] = row[key_attribute]
+                for gdf2modif in [gdf_voronoi[gdf_voronoi['id_voronoi']==id_voronoi] for id_voronoi in gdf_voronoi['id_voronoi'].unique().tolist()]:
+                    value2apply = gdf2modif['keyValue'].dropna().tolist()[0]
+                    gdf2modif['keyValue'] = value2apply
+                    gdf2concat.append(gdf2modif)
+                gdf_voronoi_with_key = gpd.GeoDataFrame(pd.concat(gdf2concat, ignore_index=True))
+                return gdf_voronoi_with_key
+            else:
+                gdf_voronoi['keyValue'] = None
+                return gdf_voronoi
         except Exception as err:
             raise err
 
@@ -163,35 +199,23 @@ class Isochrone_API_IGN:
         """
         try:
             list_gdf = []
-            count_api=0
-            for coordinates in ['{},{}'.format(f.x,f.y) for f in self.input_layer['{}'.format('geometry')]]:
+            count_api=1
+            for index, row in self.input_layer.iterrows():
+                coordinates = '{},{}'.format(row['geometry'].x,row['geometry'].y)
                 for value in self.range_value:
-                    if count_api == 5:
+                    count_api+=1
+                    if count_api%6==0:
                         time.sleep(1)
-                        count_api=1
-                        output = self.request_IGN_isochrone_api(coordinates, value, *self.params)
-                        output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
-                        list_gdf.append(output)
-                    else:
-                        count_api+=1
-                        output = self.request_IGN_isochrone_api(coordinates, value, *self.params)
-                        output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
-                        list_gdf.append(self.request_IGN_isochrone_api(coordinates, value, *self.params))
+                    count_api=1
+                    output = self.request_IGN_isochrone_api(coordinates, value, **self.params)
+                    output['X_input_point'], output['Y_input_point'] = coordinates.split(',')
+                    output['keyValue'] = row['{}'.format(self.attributKey)] if self.attributKey is not None else None
+                    list_gdf.append(output)
             if self.processingMode == 0: 
                 return self.post_api_dissolve_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value)
             elif self.processingMode == 1:
                 return gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True))
             else:
-                return self.post_api_voronoi_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value, self.input_layer, self.voronoi_extend_layer)
-        except requests.exceptions.HTTPError as http_err:
-            raise RuntimeError("HTTP error occurred: {}".format(http_err))
-        except requests.exceptions.ConnectionError as conn_err:
-            raise RuntimeError("Connection error occurred: {}".format(conn_err))
-        except requests.exceptions.Timeout as timeout_err:
-            raise RuntimeError("Timeout error occurred: {}".format(timeout_err))    
-        except requests.exceptions.RequestException as req_err:
-            raise RuntimeError("Request error occurred: {}".format(req_err))    
-        except ValueError as json_err:
-            raise ValueError("JSON error occurred: {}".format(json_err)) 
+                return self.post_api_voronoi_processing(gpd.GeoDataFrame(pd.concat(list_gdf, ignore_index=True)), self.range_value, self.input_layer, self.voronoi_extend_layer, self.attributKey)
         except Exception as err:
-            raise RuntimeError("An error occurred: {}".format(err)) 
+            raise err

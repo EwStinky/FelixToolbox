@@ -34,7 +34,7 @@
   <property name="autoFillBackground">
    <bool>false</bool>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_9">
+  <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QGridLayout" name="gridLayout_input">
      <item row="0" column="0">
@@ -121,107 +121,7 @@
      <property name="sizeConstraint">
       <enum>QLayout::SetDefaultConstraint</enum>
      </property>
-     <item row="2" column="2">
-      <widget class="QComboBox" name="comboBox_resource">
-       <item>
-        <property name="text">
-         <string>bdtopo-valhalla</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>bdtopo-pgr</string>
-        </property>
-       </item>
-      </widget>
-     </item>
      <item row="4" column="2">
-      <widget class="QComboBox" name="comboBox_location_type">
-       <item>
-        <property name="text">
-         <string>arrival</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>departure</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QComboBox" name="comboBox_CostType">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <item>
-        <property name="text">
-         <string>time</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>distance</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLabel" name="label_Distance_exterieur">
-       <property name="text">
-        <string>Cost unit</string>
-       </property>
-       <property name="wordWrap">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="0">
-      <widget class="QComboBox" name="comboBox_profile">
-       <item>
-        <property name="text">
-         <string>car</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>pedestrian</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLabel" name="label_resource">
-       <property name="text">
-        <string>Resource (be aware that each resource works differently)</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_CostValue">
-       <property name="text">
-        <string>Cost value</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLabel" name="label_CostType">
-       <property name="text">
-        <string>Cost type</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="label_profile">
-       <property name="text">
-        <string>Displacement mode</string>
-       </property>
-      </widget>
-     </item>
-     <item row="4" column="1">
       <widget class="QComboBox" name="comboBox_Unit">
        <item>
         <property name="text">
@@ -245,14 +145,7 @@
        </item>
       </widget>
      </item>
-     <item row="3" column="2">
-      <widget class="QLabel" name="label_fonction_exterieur">
-       <property name="text">
-        <string>Location type</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
+     <item row="2" column="1">
       <widget class="QLineEdit" name="lineEdit_CostValue">
        <property name="enabled">
         <bool>true</bool>
@@ -265,6 +158,130 @@
        </property>
        <property name="placeholderText">
         <string>5, 10 ,15, 20 ...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QComboBox" name="comboBox_profile">
+       <item>
+        <property name="text">
+         <string>car</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>pedestrian</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QComboBox" name="comboBox_CostType">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <item>
+        <property name="text">
+         <string>time</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>distance</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_CostType">
+       <property name="text">
+        <string>Cost type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QLabel" name="label_fonction_exterieur">
+       <property name="text">
+        <string>Location type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="3">
+      <widget class="QComboBox" name="comboBox_location_type">
+       <item>
+        <property name="text">
+         <string>arrival</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>departure</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLabel" name="label_profile">
+       <property name="text">
+        <string>Displacement mode</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QLabel" name="label_resource">
+       <property name="text">
+        <string>Resource (be aware that each resource works differently)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLabel" name="label_Distance_exterieur">
+       <property name="text">
+        <string>Cost unit</string>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QComboBox" name="comboBox_resource">
+       <item>
+        <property name="text">
+         <string>bdtopo-valhalla</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>bdtopo-pgr</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="label_CostValue">
+       <property name="text">
+        <string>Cost value</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QComboBox" name="comboBox_key">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="currentText">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="comboBox_key_label">
+       <property name="text">
+        <string>Add an attribute as a key</string>
        </property>
       </widget>
      </item>
