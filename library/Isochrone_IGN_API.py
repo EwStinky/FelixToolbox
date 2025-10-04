@@ -136,7 +136,59 @@ class Isochrone_API_IGN:
         return gdf
     
     @staticmethod
-    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None) -> gpd.GeoDataFrame:
+    def post_api_voronoi_processing(input_gdf:gpd.GeoDataFrame, range_value:list, point_layer:gpd.GeoDataFrame, voronoi_extend_layer:polygon.Polygon=None, key_attribute:str=None) -> gpd.GeoDataFrame:
+        """
+        Same as post_api_dissolve_processing but it clips the output with the voronoï polygons of the input points.
+
+        Args:
+            input_gdf (gpd.GeoDataFrame): GeoDataFrames containing isochrones from the API request.
+            range_value: list[int]: a list of integers representing the time/distance values for which the isochrones will be calculated
+            point_layer (gpd.GeoDataFrame): GeoDataFrame representing the input point layer used to calculate the isochrones.
+            voronoi_extend_layer (polygon.Polygon, optional): Polygon used to clip the voronoi's cells. If None, no clipping is applied. Defaults to None.
+            key_attribute (str, optional): Name of the point_layer attribute to use as a key value in the output. If None, None values are assigned to the keyValue column.
+
+        Returns:
+            gdf_voronoi | gdf_voronoi_with_key (gpd.GeoDataFrame): A GeoDataFrame representing the merged isochrones after the difference of each layers and clipped with the voronoi's cells.
+            If key_attribute is provided, the value 'keyValue' will be corresponding to the value of the attribute for the point from the isochrone has been calculated.
+        """
+        try:
+            dissolved_gdf=[input_gdf[input_gdf['costValue'] == y].dissolve() for y in range_value] 
+            difference = []
+            difference.append(dissolved_gdf[0])  
+            for u in range(len(range_value) - 1): 
+                output = gpd.overlay(dissolved_gdf[u + 1], dissolved_gdf[u], how='difference')
+                difference.append(output)
+            gdf = pd.concat(difference)
+            #gdf[['value','Xcentroid','Ycentroid']] = gdf.apply(lambda row: pd.Series([row['costValue'], row['geometry'].centroid.x,row['geometry'].centroid.y]), axis=1)
+            gdf.to_crs(epsg=4326, inplace=True)
+            gdf.set_geometry('geometry', inplace=True)
+            point_layer.to_crs("EPSG:4326",inplace=True)
+            voronoi_polygon = gpd.GeoDataFrame(
+                geometry=[geom for geom in list(voronoi_diagram(point_layer.unary_union, envelope=loads(str(voronoi_extend_layer)) if voronoi_extend_layer else None).geoms)], #union_all() if geopandas >= 1.0.0
+                crs="EPSG:4326"
+                )
+            voronoi_polygon['id_voronoi'] = range(len(voronoi_polygon))
+            voronoi_polygon_cliped=gpd.overlay(voronoi_polygon,  gpd.GeoDataFrame(geometry=[voronoi_extend_layer], crs="EPSG:4326"), how='intersection') if voronoi_extend_layer else voronoi_polygon
+            gdf_voronoi = gpd.overlay(gdf, voronoi_polygon_cliped, how='intersection')
+            gdf_voronoi.to_crs(4326,inplace=True)
+            gdf_voronoi.drop(columns=['X_input_point','Y_input_point'], inplace=True)
+
+            if key_attribute:
+                gdf2concat=[]
+                gdf_voronoi['keyValue'] = None
+                for index, row in point_layer.iterrows():
+                    gdf_voronoi.loc[gdf_voronoi[gdf_voronoi.intersects(row['geometry'])].index, 'keyValue'] = row[key_attribute]
+                for gdf2modif in [gdf_voronoi[gdf_voronoi['id_voronoi']==id_voronoi] for id_voronoi in gdf_voronoi['id_voronoi'].unique().tolist()]:
+                    value2apply = gdf2modif['keyValue'].dropna().tolist()[0]
+                    gdf2modif['keyValue'] = value2apply
+                    gdf2concat.append(gdf2modif)
+                gdf_voronoi_with_key = gpd.GeoDataFrame(pd.concat(gdf2concat, ignore_index=True))
+                return gdf_voronoi_with_key
+            else:
+                gdf_voronoi['keyValue'] = None
+                return gdf_voronoi
+        except Exception as err:
+            raise err
         """
         Process input geodataframe by creating Voronoi polygons from points and computing differences between cost value rings.
         
