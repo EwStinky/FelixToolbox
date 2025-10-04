@@ -281,7 +281,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="comboBox_key_label">
        <property name="text">
-        <string>Add key layer</string>
+        <string>Add an attribute as a key</string>
        </property>
       </widget>
      </item>
