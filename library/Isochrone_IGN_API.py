@@ -33,7 +33,7 @@ class Isochrone_API_IGN:
         Args:
             * input_layer (gpd.GeoDataFrame): a GeoDataFrame object representing the location of the points from which the isochrones will be calculated.
             * range_value (list[int]): a list of integers representing the time/distance values for which the isochrones will be calculated.
-            * key (str): The name of the key attribute in the output. If None or 'None', the column will not be created.
+            * key (str): The name of the key attribute that will be used as key value in the output. If None or 'None', the column will be filled with None.
             * processingMode (int): Processing mode chosen by the user that decided the output type coming from the Isochrone_API_IGN.main().
             * voronoi_extend_layer (str | tuple): Selected input for the clipping of the voronoi's cells if the voronoi processing mode has been selected.
             * for the other parameters in self.params, see the request_IGN_isochrone_api function
