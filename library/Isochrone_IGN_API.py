@@ -107,7 +107,7 @@ class Isochrone_API_IGN:
         call=requests.get('https://data.geopf.fr/navigation/isochrone',params=api_body,headers=api_headers)
         call.raise_for_status()
         
-        df = gpd.GeoDataFrame([{'geometry': shape(call.json()['geometry']), **{k: v for k, v in call.json().items() if k != 'geometry'}}], geometry='geometry', crs='EPSG:4326')
+        gdf = gpd.GeoDataFrame([{'geometry': shape(call.json()['geometry']), **{k: v for k, v in call.json().items() if k != 'geometry'}}], geometry='geometry', crs='EPSG:4326')
         return gdf
     
     @staticmethod
