@@ -43,7 +43,16 @@ class Isochrone_API_IGN:
         self.range_value = range_value
         self.attributKey = key
         self.processingMode = processingMode
-        self.params=[resource,costType,profile,direction,constraints,geometryFormat,distanceUnit,timeUnit,crs]
+        self.params={
+            'resource':resource,
+            'costType':costType,
+            'profile':profile,
+            'direction':direction,
+            'constraints':constraints,
+            'geometryFormat':geometryFormat,
+            'distanceUnit':distanceUnit,
+            'timeUnit':timeUnit,
+            'crs':crs}
         self.voronoi_extend_layer=voronoi_extend_layer
         try:
             self.output = self.main().to_json()
