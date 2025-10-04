@@ -70,7 +70,6 @@ class Isochrone_API_IGN:
             point (str): Coordinates of a point position: 'lon,lat'. This is the point from which calculations are made. It must be in EPSG:4326 format.
             costValue (int): Cost value used for calculation. You can, for example, specify a distance or a time, depending on the chosen optimization. 
                              The unit will also depend on the distanceUnit and timeUnit parameters.
-            valueKey (str): The value of the key attribute in the output. If None or 'None', the column will not be created.
             resource (str): Resource used for calculation. Possible values are: bdtopo-valhalla, bdtopo-pgr, pgr_sgl_r100_all, graph_pgr_D013. 
             costType (str): Type of cost used for calculation. The unit will also depend on the distanceUnit and timeUnit parameters. 
                             Possible values are: time, distance
