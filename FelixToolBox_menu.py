@@ -61,6 +61,12 @@ class felixtoolbox_menu:
         self.isochrone_ign_api.triggered.connect(lambda: ui_run_isochrone_ign().run())
         self.accessibility_menu.addAction(self.isochrone_ign_api)
 
+        #2.C. Itinerary IGN API action
+        icon = QIcon(os.path.dirname(__file__) + "/icons/E094_color.png")  
+        self.itinerary_ign_api = QAction(icon, u'Itinerary IGN API', self.iface.mainWindow())
+        self.itinerary_ign_api.triggered.connect(lambda: ui_run_itinerary_ign().run())
+        self.accessibility_menu.addAction(self.itinerary_ign_api)
+
         #3. Geocoding submenu
         self.geocoding_menu = QMenu(u'Geocoding')
         icon = QIcon(os.path.dirname(__file__) + "/icons/1F9ED_color.png")

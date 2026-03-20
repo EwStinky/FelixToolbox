@@ -2,7 +2,8 @@ import time
 import functools
 import requests
 import geopandas as gpd
-from shapely.geometry import LineString
+from typing import List
+from shapely.geometry import LineString, Point
 from requests.exceptions import RequestException
 
 class decorators:
@@ -123,6 +124,16 @@ class usefullTools:
             elif a < b:
                 return -1
         return 0
+    
+    @staticmethod
+    def extractPointCoordinatesGdf(gdf:gpd.GeoDataFrame) -> List[str]:
+        """
+        Extract coordinates from a GeoDataFrame when the geometry is a point 
+        and return them as list of 'X,Y' strings in the Geodataframe's crs.
+        """
+        if gdf.crs!="EPSG:4326":
+            gdf.to_crs(epsg=4326,inplace=True)
+        return [f"{row.geometry.x},{row.geometry.y}" if all([row.geometry is not None, isinstance(row.geometry, Point)]) else None for index, row in gdf.iterrows()]
 
 
 

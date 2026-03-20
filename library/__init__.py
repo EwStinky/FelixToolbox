@@ -18,7 +18,9 @@ __all__ = ['mapscreenshot',
            'siretInPolygonFilteredByAddresses', 
            'decorators', 
            'requestOtherApi',
-           'usefullTools']
+           'usefullTools',
+           'ItineraireIGN'
+           ]
 
 from .mapscreenshot import mapscreenshot
 from .Isochrone_ORS_Tools_GeopandasV3 import Isochrone_API_ORS
@@ -26,3 +28,4 @@ from .Isochrone_IGN_API import Isochrone_API_IGN
 from .address2point import AddressSearch
 from .Request_API_SIRENE import apiSireneRequest, apiSireneUtils, siretInPolygonFilteredByCoordinates, siretInPolygonFilteredByAddresses
 from .utilsLibrary import decorators, requestOtherApi, usefullTools
+from .Itinerary_IGN_API import ItineraireIGN

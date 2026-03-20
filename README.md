@@ -28,6 +28,10 @@ The plugin contains several tools such as the creation of isochrones from severa
 
 👉 **Isochrone IGN API**: Similar to the Isochrone ORS API tool, but limited to France and does not require any API key. It requests isochrones from the IGN (Institut national de l'information géographique et forestière) API for the selected layers and their parameters.
 
+👉 **Itinerary IGN API**: Create itineraries by using the IGN Itinéraire API, between a departure and arrival layer for each point of each layer.
+It is possible to filter the number of arrival points to create itineraries from by setting a maximal driving time from the departure points.
+A single layer mode also exists, when enabled, use one layer as both departure and arrival points. The tool creates sequential itineraries based on a selected column (e.g., ID 1→2, 2→3). Optionally group by another column to process each group independently without cross-group connections.
+
 👉 **Map Screenshot**: Instantly produces a map of your current QGIS instance view with all its active layers, with a personalized title and sources if needed.
 
 👉 **Address to Point**: Geocodes addresses in your QGIS instance using the Nominatim API or the BAN API (France only) by writing addresses or by using a CSV file as input.
